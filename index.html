@@ -1899,7 +1899,7 @@
             border: 2px solid #ef4444;
         }
         body.dark-mode .expired-card {
-            background: linear-gradient(145deg, #7f1d1d, #991b1b, #b91c1c);
+            background: linear-gradient(145deg, #7f1d1d, #991b1b, #b91c1b);
             border-color: #ef4444;
             color: #fee2e2;
         }
@@ -3374,15 +3374,24 @@
             </div>
             
             <div class="payment-input-group">
-                <select id="popupDuration" onchange="calculatePopupExpiry()" style="flex:1; border-color: var(--primary-light); font-size:13px;">
-                    <option value="30" data-i18n="1Month">1 Month</option>
-                    <option value="60" data-i18n="2Months">2 Months</option>
-                    <option value="90" data-i18n="3Months">3 Months</option>
-                    <option value="180" data-i18n="6Months">6 Months</option>
-                    <option value="custom" data-i18n="manual">Manual</option>
-                </select>
-                <input type="date" id="popupExpiry" style="flex:1; border-color: var(--primary-light); font-size:13px;" onchange="validatePopupExpiryDate()">
+                <div>
+                    <select id="popupDuration" onchange="calculatePopupExpiry()" style="border-color: var(--primary-light); font-size:13px;">
+                        <option value="30" data-i18n="1Month">1 Month</option>
+                        <option value="60" data-i18n="2Months">2 Months</option>
+                        <option value="90" data-i18n="3Months">3 Months</option>
+                        <option value="180" data-i18n="6Months">6 Months</option>
+                        <option value="custom" data-i18n="manual">Manual</option>
+                    </select>
+                    <small data-i18n="duration">Duration</small>
+                </div>
+                <div>
+                    <input type="date" id="popupExpiry" style="border-color: var(--primary-light); font-size:13px;" onchange="validatePopupExpiryDate()">
+                    <small data-i18n="expiryDate">Expiry Date</small>
+                </div>
             </div>
+            
+            <!-- Days Indicator - Added as per Requirement 1 -->
+            <div id="popupDaysIndicator" style="text-align:center; font-size:12px; font-weight:800; color:var(--primary); margin-bottom:12px;">Total Validity: 0 Days</div>
             
             <div style="margin-bottom:15px;">
                 <input type="number" id="popupBill" placeholder="Today's Bill Amount" oninput="calculatePopupTotal()" style="border-color: var(--primary); font-weight:700; font-size:14px;">
@@ -4115,9 +4124,7 @@
                   onmouseover="this.style.color='var(--danger)'" 
                   onmouseout="this.style.color='var(--text-light)'">&times;</span>
             <div id="mContent"></div>
-            <button onclick="printReceipt()" class="btn-action" style="background:var(--gradient-dark); margin-top:8px; font-size:14px;">
-                <i class="fa-solid fa-print"></i> Save as Print
-            </button>
+            <!-- ISSUE 1 FIXED: The duplicate black "Print" button has been removed from HTML -->
         </div>
     </div>
     
@@ -6144,6 +6151,7 @@ function validateExpiryDate() {
     }
 }
 
+// ========== UPDATED validatePopupExpiryDate() FOR REQUIREMENT 3 ==========
 function validatePopupExpiryDate() {
     try {
         const expiryInput = document.getElementById('popupExpiry');
@@ -6160,6 +6168,23 @@ function validatePopupExpiryDate() {
             expiryInput.value = getTodayStr();
             return false;
         }
+        
+        // Calculate days difference for custom date
+        const diffTime = selectedDate - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        // Update days indicator for custom date
+        const daysIndicator = document.getElementById('popupDaysIndicator');
+        if (daysIndicator) {
+            if (diffDays >= 0) {
+                daysIndicator.innerHTML = `Custom Validity: ${diffDays} Days`;
+                daysIndicator.style.color = 'var(--info)';
+            } else {
+                daysIndicator.innerHTML = 'Custom Validity: 0 Days (Past date not allowed)';
+                daysIndicator.style.color = 'var(--danger)';
+            }
+        }
+        
         return true;
     } catch(e) {
         console.error("Validate popup expiry date error:", e);
@@ -6582,6 +6607,7 @@ function highlightError(fieldId) {
     }
 }
 
+// ========== UPDATED openPaymentPopup() FOR REQUIREMENT 4 ==========
 function openPaymentPopup(mobile, action) {
     try {
         let c = db.find(x => x.mobile && x.mobile.toString() === mobile.toString());
@@ -6603,6 +6629,8 @@ function openPaymentPopup(mobile, action) {
         const popupSlip = document.getElementById('popupSlip');
         const popupExpiry = document.getElementById('popupExpiry');
         const popupTitle = document.getElementById('popupTitle');
+        const popupDuration = document.getElementById('popupDuration');
+        const daysIndicator = document.getElementById('popupDaysIndicator');
         
         if (popupMobile) popupMobile.value = mobile;
         if (popupOldExpiry) popupOldExpiry.value = c.expiry || '';
@@ -6615,12 +6643,42 @@ function openPaymentPopup(mobile, action) {
         if (popupRemark) popupRemark.value = '';
         if (popupSlip) popupSlip.value = '';
         
-        if (c.expiry && popupExpiry) {
-            popupExpiry.value = c.expiry;
-        } else if (popupExpiry) {
-            let d = new Date();
-            d.setDate(d.getDate() + 30);
-            popupExpiry.value = d.toISOString().split('T')[0];
+        // Set default duration to '30' and lock expiry by default
+        if (popupDuration) {
+            popupDuration.value = '30';
+        }
+        
+        if (popupExpiry) {
+            popupExpiry.readOnly = true;
+            // Calculate initial expiry based on 30 days
+            if (c.expiry && c.expiry !== '') {
+                let oldExpiryDate = new Date(c.expiry);
+                let today = new Date();
+                today.setHours(0, 0, 0, 0);
+                oldExpiryDate.setHours(0, 0, 0, 0);
+                
+                if (oldExpiryDate >= today) {
+                    // Active: Add 30 days to old expiry
+                    let newDate = new Date(c.expiry);
+                    newDate.setDate(newDate.getDate() + 30);
+                    popupExpiry.value = newDate.toISOString().split('T')[0];
+                } else {
+                    // Expired: Add 30 days to today
+                    let newDate = new Date();
+                    newDate.setDate(newDate.getDate() + 30);
+                    popupExpiry.value = newDate.toISOString().split('T')[0];
+                }
+            } else {
+                // No expiry: Add 30 days to today
+                let newDate = new Date();
+                newDate.setDate(newDate.getDate() + 30);
+                popupExpiry.value = newDate.toISOString().split('T')[0];
+            }
+        }
+        
+        // Clear or reset days indicator
+        if (daysIndicator) {
+            daysIndicator.innerHTML = 'Total Validity: 0 Days';
         }
         
         if (popupTitle) {
@@ -6634,6 +6692,9 @@ function openPaymentPopup(mobile, action) {
         }
         
         calculatePopupTotal();
+        
+        // Call calculatePopupExpiry to ensure proper UI update
+        calculatePopupExpiry();
         
         const paymentPopup = document.getElementById('paymentPopup');
         if (paymentPopup) paymentPopup.style.display = 'flex';
@@ -6651,39 +6712,72 @@ function closePaymentPopup() {
     }
 }
 
+// ========== UPDATED calculatePopupExpiry() FOR REQUIREMENT 2 ==========
 function calculatePopupExpiry() {
     try {
         let duration = document.getElementById('popupDuration');
         let oldExpiry = document.getElementById('popupOldExpiry');
         let popupExpiry = document.getElementById('popupExpiry');
+        let daysIndicator = document.getElementById('popupDaysIndicator');
         
-        if (!duration || !oldExpiry || !popupExpiry) return;
+        if (!duration || !oldExpiry || !popupExpiry || !daysIndicator) return;
         
         let durVal = duration.value;
         let oldExpiryVal = oldExpiry.value;
         
-        if (durVal === 'custom') return;
-        
-        let d;
-        let today = new Date();
-        
-        if (oldExpiryVal && oldExpiryVal !== '') {
-            let oldExpiryDate = new Date(oldExpiryVal);
-            let isExpired = oldExpiryDate < today;
-            
-            if (isExpired) {
-                d = new Date();
-                d.setDate(today.getDate() + parseInt(durVal));
-            } else {
-                d = new Date(oldExpiryVal);
-                d.setDate(d.getDate() + parseInt(durVal));
-            }
+        // Handle custom selection
+        if (durVal === 'custom') {
+            popupExpiry.readOnly = false;
+            daysIndicator.innerHTML = 'Select a manual date';
+            daysIndicator.style.color = 'var(--warning)';
+            return;
         } else {
-            d = new Date();
-            d.setDate(today.getDate() + parseInt(durVal));
+            popupExpiry.readOnly = true;
         }
         
-        popupExpiry.value = d.toISOString().split('T')[0];
+        let today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        let newDate;
+        
+        // Check if customer is ACTIVE (oldExpiry >= today)
+        if (oldExpiryVal && oldExpiryVal !== '') {
+            let oldExpiryDate = new Date(oldExpiryVal);
+            oldExpiryDate.setHours(0, 0, 0, 0);
+            
+            if (oldExpiryDate >= today) {
+                // ACTIVE: Add days to old expiry date
+                newDate = new Date(oldExpiryVal);
+                newDate.setDate(newDate.getDate() + parseInt(durVal));
+            } else {
+                // EXPIRED: Add days to today's date
+                newDate = new Date();
+                newDate.setDate(today.getDate() + parseInt(durVal));
+            }
+        } else {
+            // NO expiry date: Add days to today's date
+            newDate = new Date();
+            newDate.setDate(today.getDate() + parseInt(durVal));
+        }
+        
+        // Set the new expiry date
+        popupExpiry.value = newDate.toISOString().split('T')[0];
+        
+        // Calculate days difference between today and new expiry date
+        const newExpiryDate = new Date(popupExpiry.value);
+        newExpiryDate.setHours(0, 0, 0, 0);
+        const diffTime = newExpiryDate - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        // Update days indicator
+        if (diffDays >= 0) {
+            daysIndicator.innerHTML = `Total Validity: ${diffDays} Days`;
+            daysIndicator.style.color = 'var(--primary)';
+        } else {
+            daysIndicator.innerHTML = 'Total Validity: 0 Days';
+            daysIndicator.style.color = 'var(--danger)';
+        }
+        
         calculatePopupTotal();
     } catch(e) {
         console.error("Calculate popup expiry error:", e);
