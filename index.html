@@ -3954,8 +3954,12 @@
                         <select id="staffSelectDropdown">
                             <option value="">Loading staff list...</option>
                         </select>
-                        <button onclick="assignStaffToCustomer()">
+                        <button id="btnAssignStaff" onclick="assignStaffToCustomer()">
                             <i class="fa-solid fa-check"></i> Assign
+                        </button>
+                        <!-- Revoke Access Button with ID added -->
+                        <button id="btnRevokeStaff" onclick="revokeStaffAccess()" style="background:var(--gradient-danger);">
+                            <i class="fa-solid fa-xmark"></i> Revoke
                         </button>
                     </div>
                 </div>
@@ -7023,7 +7027,7 @@ async function savePopupPayment() {
     }
 }
 
-// ========== UPDATED openFullProfile FUNCTION WITH PERMISSION CHECK AND ASSIGNMENT UI ==========
+// ========== UPDATED openFullProfile FUNCTION WITH ID-BASED FILTERING AND ASSIGNMENT UI ==========
 function openFullProfile(mobile) {
     try {
         let c = db.find(x => x.mobile && x.mobile.toString() === mobile.toString());
@@ -7182,12 +7186,18 @@ function openFullProfile(mobile) {
             profStatus.innerText = statusText;
         }
         
-        let custHistory = historyDB.filter(t => t.mobile && t.mobile.toString() === mobile.toString())
-                                   .sort((a, b) => {
-                                       const dateCompare = new Date(b.date) - new Date(a.date);
-                                       if (dateCompare !== 0) return dateCompare;
-                                       return b.id - a.id;
-                                   });
+        // --- START REQUIREMENT 1: FIXED Customer Profile Transaction History Visibility ---
+        // FIXED: Filter by mobile OR ID OR name to show history even after name/mobile update
+        let custHistory = historyDB.filter(t => 
+            (t.mobile && t.mobile.toString() === mobile.toString()) || 
+            (c.id && t.id && t.id.toString() === c.id.toString()) || 
+            (t.name && t.name === c.name)
+        ).sort((a, b) => {
+            const dateCompare = new Date(b.date) - new Date(a.date);
+            if (dateCompare !== 0) return dateCompare;
+            return b.id - a.id;
+        });
+        // --- END REQUIREMENT 1 ---
         
         let historyHTML = '';
         if (custHistory.length === 0) {
@@ -7323,20 +7333,50 @@ function openFullProfile(mobile) {
     }
 }
 
-// ========== TASK 3: Staff Assignment Function ==========
+// ========== TASK 3: Staff Assignment Function with Loading UI ==========
 async function assignStaffToCustomer() {
+    // Get the assign button
+    let btn = document.getElementById('btnAssignStaff');
+    
+    // Set loading state at the beginning
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Assigning...';
+    }
+    
     try {
         // Get current customer mobile from profile
         const profMobile = document.getElementById('profMobile');
-        if (!profMobile) return;
+        if (!profMobile) {
+            alert("Customer mobile not found");
+            // Restore button state
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Assign';
+            }
+            return;
+        }
         
         const mobile = profMobile.innerText;
         const dropdown = document.getElementById('staffSelectDropdown');
-        if (!dropdown) return;
+        if (!dropdown) {
+            alert("Dropdown not found");
+            // Restore button state
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Assign';
+            }
+            return;
+        }
         
         const selectedEmail = dropdown.value;
         if (!selectedEmail) {
             alert("Please select a staff member to assign");
+            // Restore button state
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Assign';
+            }
             return;
         }
         
@@ -7344,6 +7384,11 @@ async function assignStaffToCustomer() {
         let idx = db.findIndex(x => x.mobile && x.mobile.toString() === mobile.toString());
         if (idx === -1) {
             alert("Customer not found!");
+            // Restore button state
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Assign';
+            }
             return;
         }
         
@@ -7380,10 +7425,16 @@ async function assignStaffToCustomer() {
     } catch(e) {
         console.error("Assign staff error:", e);
         alert("Error assigning staff. Please try again.");
+    } finally {
+        // Restore button state at the end
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Assign';
+        }
     }
 }
 
-// Helper function to populate staff dropdown
+// ========== REQUIREMENT 2: UPDATED populateStaffDropdown FUNCTION ==========
 async function populateStaffDropdown(currentMobile) {
     try {
         const dropdown = document.getElementById('staffSelectDropdown');
@@ -7418,12 +7469,15 @@ async function populateStaffDropdown(currentMobile) {
             }
         }
         
-        // Filter out admin and get only active staff
+        // --- START REQUIREMENT 2: Hide logged-in user from dropdown ---
+        // Filter out admin, role 'admin', and the currently logged-in user (curUser.email)
         const activeStaff = staffList.filter(s => 
             s.email !== 'admin' && 
             s.role !== 'admin' && 
+            s.email !== curUser.email && 
             !s.blocked
         );
+        // --- END REQUIREMENT 2 ---
         
         if (activeStaff.length === 0) {
             dropdown.innerHTML = '<option value="">No staff available</option>';
@@ -7452,6 +7506,83 @@ async function populateStaffDropdown(currentMobile) {
         const dropdown = document.getElementById('staffSelectDropdown');
         if (dropdown) {
             dropdown.innerHTML = '<option value="">Error loading staff</option>';
+        }
+    }
+}
+
+// ========== REQUIREMENT 3: NEW revokeStaffAccess FUNCTION WITH LOADING UI ==========
+async function revokeStaffAccess() {
+    // Get the revoke button
+    let btn = document.getElementById('btnRevokeStaff');
+    
+    // Set loading state at the beginning
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Revoking...';
+    }
+    
+    try {
+        // 1. Get current customer mobile from profile
+        const profMobile = document.getElementById('profMobile');
+        if (!profMobile) {
+            alert("Customer mobile not found");
+            // Restore button state
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-xmark"></i> Revoke';
+            }
+            return;
+        }
+        const mobile = profMobile.innerText;
+        
+        // 2. Find customer index in db
+        let idx = db.findIndex(x => x.mobile && x.mobile.toString() === mobile.toString());
+        if (idx === -1) {
+            alert("Customer not found!");
+            // Restore button state
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-xmark"></i> Revoke';
+            }
+            return;
+        }
+        
+        // 3. Set assignedTo to empty string
+        db[idx].assignedTo = "";
+        
+        // 4. Perform cloud save using fetchWithRetry
+        if (cloudUrl && !window.isDemoMode) {
+            try {
+                await fetchWithRetry(cloudUrl + "?action=saveCustomer&email=" + curUser.email + "&password=" + curUser.password, {
+                    method: 'POST',
+                    body: JSON.stringify(db[idx])
+                });
+            } catch(e) {
+                console.log("Cloud save failed during revoke:", e);
+                alert("Warning: Cloud sync failed, but access revoked locally");
+            }
+        }
+        
+        // 5. Save local data
+        saveLocal();
+        
+        // 6. Hide assignedBadge and clear assignedToName in the UI
+        const assignedBadge = document.getElementById('assignedBadge');
+        const assignedToName = document.getElementById('assignedToName');
+        if (assignedBadge) assignedBadge.classList.add('hidden');
+        if (assignedToName) assignedToName.innerText = "";
+        
+        // 7. Show success alert
+        alert("✅ Staff access revoked successfully!");
+        
+    } catch(e) {
+        console.error("Revoke staff access error:", e);
+        alert("Error revoking access. Please try again.");
+    } finally {
+        // Restore button state at the end
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-xmark"></i> Revoke';
         }
     }
 }
@@ -9350,7 +9481,7 @@ function triggerActualPrint() {
     }
 }
 
-// ========== SYNC DATA FUNCTION ==========
+// ========== UPDATED SYNC DATA FUNCTION - FIX FOR SHOP NAME AND OWNER NAME UI UPDATE ==========
 async function syncData() { 
     if (window.isDemoMode) {
         alert("Sync is disabled in Demo Mode");
@@ -9390,6 +9521,10 @@ async function syncData() {
                 return;
             }
             
+            let dataChanged = false;
+            let shopNameChanged = false;
+            let ownerNameChanged = false;
+            
             const fetchedTransactions = data.transactions || [];
             
             if (curUser) {
@@ -9398,6 +9533,7 @@ async function syncData() {
             
             if (fetchedTransactions.length > 0) {
                 historyDB = fetchedTransactions;
+                dataChanged = true;
             }
             
             if (data.customers) {
@@ -9408,28 +9544,59 @@ async function syncData() {
                         c.assignedTo = "";
                     }
                 });
+                dataChanged = true;
             }
             
+            // FIX: Check if Shop Name from cloud is different from current global Shop Name
             if (data.shopName && data.shopName !== shopName) {
                 shopName = data.shopName;
                 localStorage.setItem('pub_hisab_shop_name', shopName);
+                
+                // Update the text element in the top header UI
                 const shopTitle = document.getElementById('shopTitle');
                 if (shopTitle) shopTitle.innerText = shopName;
+                
+                shopNameChanged = true;
+                dataChanged = true;
             }
             
-            // FIXED: Only save ownerMobile if it exists and is not empty/undefined
-            if (data.ownerMobile && data.ownerMobile !== '') {
+            // FIX: Check if Owner Mobile and Email exist and update if needed
+            if (data.ownerMobile && data.ownerMobile !== '' && data.ownerMobile !== ownerMobile) {
                 ownerMobile = data.ownerMobile;
                 localStorage.setItem('pub_hisab_owner_mobile', ownerMobile);
+                dataChanged = true;
             }
-            if (data.ownerEmail && data.ownerEmail !== '') {
+            if (data.ownerEmail && data.ownerEmail !== '' && data.ownerEmail !== ownerEmail) {
                 ownerEmail = data.ownerEmail;
                 localStorage.setItem('pub_hisab_owner_email', ownerEmail);
+                dataChanged = true;
             }
             
-            saveLocal(); 
-            refreshUI(); 
-            updateDashboardBoxes();
+            // FIX: Check if the currently logged-in user is an 'admin' and if Owner Name from cloud is different from current user's name
+            if (curUser && curUser.role === 'admin' && data.ownerName && data.ownerName !== curUser.name) {
+                curUser.name = data.ownerName;
+                
+                // Update the current user's name object in localStorage
+                localStorage.setItem('pub_hisab_current_user', JSON.stringify(curUser));
+                
+                // Update the text element in the top header UI
+                const userNameDisplay = document.getElementById('userNameDisplay');
+                if (userNameDisplay) userNameDisplay.innerText = `- ${curUser.name}`;
+                
+                ownerNameChanged = true;
+                dataChanged = true;
+            }
+            
+            // Very Important: If any of these names change, call the existing profile settings update function
+            if (shopNameChanged || ownerNameChanged) {
+                updateProfileSettings();
+            }
+            
+            if (dataChanged) {
+                saveLocal(); 
+                refreshUI(); 
+                updateDashboardBoxes();
+            }
             
             if (dashboardBtn) {
                 dashboardBtn.innerHTML = `<i class="fa-solid fa-check"></i> Success! ✅`;
@@ -9476,6 +9643,119 @@ async function syncData() {
         }
     } catch(e) {
         console.error("Sync data error:", e);
+    }
+}
+
+// ========== UPDATED autoSyncData FUNCTION - FIX FOR SHOP NAME AND OWNER NAME UI UPDATE ==========
+async function autoSyncData() {
+    if (window.isDemoMode) {
+        console.log("Auto-sync disabled in Demo Mode");
+        return;
+    }
+    if (isAutoSyncing) return;
+    isAutoSyncing = true;
+    
+    try {
+        let res = await fetchWithRetry(cloudUrl + "?action=getAllData&email=" + curUser.email + "&password=" + curUser.password + "&t=" + Date.now(), {}, 2);
+        if (!res.ok) {
+            console.log("Auto-sync failed:", res.status);
+            isAutoSyncing = false;
+            return;
+        }
+        
+        let data = await res.json();
+        
+        if (data.error && data.error === "USER_BLOCKED") {
+            alert("Access Revoked. Your account has been blocked or deleted.");
+            localStorage.clear();
+            location.reload();
+            isAutoSyncing = false;
+            return;
+        }
+        
+        let dataChanged = false;
+        let shopNameChanged = false;
+        let ownerNameChanged = false;
+        
+        const fetchedTransactions = data.transactions || [];
+        
+        if (curUser) {
+            checkForNewNotifications(fetchedTransactions);
+        }
+        
+        if (fetchedTransactions.length > 0) {
+            historyDB = fetchedTransactions;
+            dataChanged = true;
+        }
+        
+        if (data.customers) {
+            db = data.customers;
+            // Ensure all customers have assignedTo field
+            db.forEach(c => {
+                if (!c.hasOwnProperty('assignedTo')) {
+                    c.assignedTo = "";
+                }
+            });
+            dataChanged = true;
+        }
+        
+        // FIX: Check if Shop Name from cloud is different from current global Shop Name
+        if (data.shopName && data.shopName !== shopName) {
+            shopName = data.shopName;
+            localStorage.setItem('pub_hisab_shop_name', shopName);
+            
+            // Update the text element in the top header UI
+            const shopTitle = document.getElementById('shopTitle');
+            if (shopTitle) shopTitle.innerText = shopName;
+            
+            shopNameChanged = true;
+            dataChanged = true;
+        }
+        
+        // FIX: Only save ownerMobile and ownerEmail if they exist and are not empty/undefined
+        if (data.ownerMobile && data.ownerMobile !== '' && data.ownerMobile !== ownerMobile) {
+            ownerMobile = data.ownerMobile;
+            localStorage.setItem('pub_hisab_owner_mobile', ownerMobile);
+            dataChanged = true;
+        }
+        if (data.ownerEmail && data.ownerEmail !== '' && data.ownerEmail !== ownerEmail) {
+            ownerEmail = data.ownerEmail;
+            localStorage.setItem('pub_hisab_owner_email', ownerEmail);
+            dataChanged = true;
+        }
+        
+        // FIX: Check if the currently logged-in user is an 'admin' and if Owner Name from cloud is different from current user's name
+        if (curUser && curUser.role === 'admin' && data.ownerName && data.ownerName !== curUser.name) {
+            curUser.name = data.ownerName;
+            
+            // Update the current user's name object in localStorage
+            localStorage.setItem('pub_hisab_current_user', JSON.stringify(curUser));
+            
+            // Update the text element in the top header UI
+            const userNameDisplay = document.getElementById('userNameDisplay');
+            if (userNameDisplay) userNameDisplay.innerText = `- ${curUser.name}`;
+            
+            ownerNameChanged = true;
+            dataChanged = true;
+        }
+        
+        // Very Important: If any of these names change, call the existing profile settings update function
+        if (shopNameChanged || ownerNameChanged) {
+            updateProfileSettings();
+        }
+        
+        if (dataChanged) {
+            saveLocal();
+            updateDashboardBoxes();
+            updateCounters();
+        }
+        
+        console.log("Silent auto-sync completed at", new Date().toLocaleTimeString());
+        
+    } catch(e) {
+        console.log("Auto-sync error:", e);
+    } finally {
+        isAutoSyncing = false;
     }
 }
 
