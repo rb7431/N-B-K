@@ -4335,18 +4335,18 @@
                         <div id="managerStaffListScrollContainer" class="staff-list-scroll-container" style="max-height: 300px; overflow-y: auto;">
                             <table class="staff-list-table" id="managerStaffTable">
                                 <thead>
-                                      ...
+                                    <tr>
                                         <th data-i18n="name">Name</th>
                                         <th data-i18n="role">Role</th>
                                         <th data-i18n="mobile">Mobile</th>
                                         <th data-i18n="email">Email</th>
                                         <th data-i18n="status">Status</th>
-                                      ...
+                                    </tr>
                                 </thead>
                                 <tbody id="managerStaffList">
-                                    禅<td colspan="5" style="text-align:center; padding:20px;">Loading staff list...禅</tr>
+                                    <tr><td colspan="5" style="text-align:center; padding:20px;">Loading staff list...</td></tr>
                                 </tbody>
-                             </table>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -5888,7 +5888,6 @@ function applyRoleBasedView(user) {
         const mainNavbar = document.getElementById('mainNavbar');
         const onlineApprovalsSection = document.getElementById('onlineApprovalsSection');
         const handoverApprovalsSection = document.getElementById('handoverApprovalsSection');
-        // FIX B: Get the cash handover section (though it's now removed from UI, we keep the variable for safety)
         const cashHandoverSection = document.getElementById('cashHandoverSection');
         
         // Hide all by default
@@ -5902,7 +5901,6 @@ function applyRoleBasedView(user) {
         if (navReportBtn) navReportBtn.style.display = 'none';
         if (onlineApprovalsSection) onlineApprovalsSection.style.display = 'none';
         if (handoverApprovalsSection) handoverApprovalsSection.style.display = 'none';
-        // FIX B: Hide cash handover by default (though removed)
         if (cashHandoverSection) cashHandoverSection.style.display = 'none';
         
         // Show main navbar
@@ -5924,10 +5922,9 @@ function applyRoleBasedView(user) {
             if (advancedFilterBox) advancedFilterBox.classList.remove('hidden');
             if (navReportBtn) navReportBtn.style.display = 'block';
             if (onlineApprovalsSection) onlineApprovalsSection.style.display = 'grid';
-            // REQUIREMENT 2: Ensure handoverApprovalsSection is set to display: 'grid' for admin
             if (handoverApprovalsSection) handoverApprovalsSection.style.display = 'grid';
             
-            // Show admin financial boxes (Current Month Bill, Collection, Staff Pending Balance, Admin Cash In Hand)
+            // Show admin financial boxes
             if (adminHeading) adminHeading.style.display = 'block';
             if (adminGrid) adminGrid.style.display = 'grid';
             
@@ -5943,9 +5940,7 @@ function applyRoleBasedView(user) {
             if (advancedFilterBox) advancedFilterBox.classList.remove('hidden');
             if (navReportBtn) navReportBtn.style.display = 'block';
             if (onlineApprovalsSection) onlineApprovalsSection.style.display = 'grid';
-            // REQUIREMENT 2: Ensure handoverApprovalsSection is set to display: 'grid' for manager
             if (handoverApprovalsSection) handoverApprovalsSection.style.display = 'grid';
-            // FIX B: Show cash handover for manager (though removed)
             if (cashHandoverSection) cashHandoverSection.style.display = 'grid';
             
             populateAdvancedStaffFilter();
@@ -5958,7 +5953,6 @@ function applyRoleBasedView(user) {
             
             // Hide staff from seeing certain nav items
             if (navReportBtn) navReportBtn.style.display = 'none';
-            // FIX B: Show cash handover for staff (though removed)
             if (cashHandoverSection) cashHandoverSection.style.display = 'grid';
             
         } else if (user.role === 'customer') {
@@ -7302,18 +7296,15 @@ function highlightError(fieldId) {
 
 // ========== ONLINE PAYMENT FUNCTIONS ==========
 
-// FIX A: Updated populatePaidToDropdown to explicitly include Owner and hide for admin
 function populatePaidToDropdown(dropdownId) {
     try {
         const dropdown = document.getElementById(dropdownId);
         if (!dropdown || !curUser) return;
         
         if (curUser.role === 'admin') {
-            // Admin: Set to Self only and hide the section
             dropdown.innerHTML = '<option value="self">Self (Owner Account)</option>';
             dropdown.disabled = true;
             
-            // Find the parent section and hide it
             const section = dropdown.closest('.online-details-section');
             if (section) {
                 section.style.display = 'none';
@@ -7321,11 +7312,9 @@ function populatePaidToDropdown(dropdownId) {
             return;
         }
         
-        // Non-admin: Show full dropdown with options
         dropdown.disabled = false;
         let options = '<option value="">Select Paid To</option>';
         
-        // Get staff list from localStorage
         let staffList = [];
         try {
             staffList = JSON.parse(localStorage.getItem('pub_hisab_staff_list')) || [];
@@ -7334,22 +7323,17 @@ function populatePaidToDropdown(dropdownId) {
         }
 
         if (curUser.role === 'staff') {
-            // Explicitly add Owner using global variables
             options += '<option value="' + (ownerEmail || 'admin') + '">Owner / Admin</option>';
             
-            // Add Managers from staffList
             staffList.filter(s => s.role === 'manager').forEach(m => {
                 options += `<option value="${m.email}">${m.name} (Manager)</option>`;
             });
             
-            // Add Self
             options += '<option value="self">Self (My Account)</option>';
             
         } else if (curUser.role === 'manager') {
-            // Explicitly add Owner using global variables
             options += '<option value="' + (ownerEmail || 'admin') + '">Owner / Admin</option>';
             
-            // Add Self
             options += '<option value="self">Self (My Account)</option>';
         }
         
@@ -7360,7 +7344,6 @@ function populatePaidToDropdown(dropdownId) {
     }
 }
 
-// Toggle online section visibility
 function toggleOnlineSection() {
     try {
         const onlineInput = document.getElementById('popupOnline');
@@ -7418,7 +7401,6 @@ function toggleAddonOnlineSection() {
     }
 }
 
-// ========== UPDATED openPaymentPopup() ==========
 function openPaymentPopup(mobile, action) {
     try {
         let c = db.find(x => x.mobile && x.mobile.toString() === mobile.toString());
@@ -7456,14 +7438,12 @@ function openPaymentPopup(mobile, action) {
         if (popupSlip) popupSlip.value = '';
         if (onlineSection) onlineSection.classList.add('hidden');
         
-        // Set default duration to '30' and lock expiry by default
         if (popupDuration) {
             popupDuration.value = '30';
         }
         
         if (popupExpiry) {
             popupExpiry.readOnly = true;
-            // Calculate initial expiry based on 30 days
             if (c.expiry && c.expiry !== '') {
                 let oldExpiryDate = new Date(c.expiry);
                 let today = new Date();
@@ -7471,25 +7451,21 @@ function openPaymentPopup(mobile, action) {
                 oldExpiryDate.setHours(0, 0, 0, 0);
                 
                 if (oldExpiryDate >= today) {
-                    // Active: Add 30 days to old expiry
                     let newDate = new Date(c.expiry);
                     newDate.setDate(newDate.getDate() + 30);
                     popupExpiry.value = newDate.toISOString().split('T')[0];
                 } else {
-                    // Expired: Add 30 days to today
                     let newDate = new Date();
                     newDate.setDate(newDate.getDate() + 30);
                     popupExpiry.value = newDate.toISOString().split('T')[0];
                 }
             } else {
-                // No expiry: Add 30 days to today
                 let newDate = new Date();
                 newDate.setDate(newDate.getDate() + 30);
                 popupExpiry.value = newDate.toISOString().split('T')[0];
             }
         }
         
-        // Clear or reset days indicator
         if (daysIndicator) {
             daysIndicator.innerHTML = 'Total Validity: 0 Days';
         }
@@ -7505,8 +7481,6 @@ function openPaymentPopup(mobile, action) {
         }
         
         calculatePopupTotal();
-        
-        // Call calculatePopupExpiry to ensure proper UI update
         calculatePopupExpiry();
         
         const paymentPopup = document.getElementById('paymentPopup');
@@ -7525,7 +7499,6 @@ function closePaymentPopup() {
     }
 }
 
-// ========== UPDATED calculatePopupExpiry() ==========
 function calculatePopupExpiry() {
     try {
         let duration = document.getElementById('popupDuration');
@@ -7538,7 +7511,6 @@ function calculatePopupExpiry() {
         let durVal = duration.value;
         let oldExpiryVal = oldExpiry.value;
         
-        // Handle custom selection
         if (durVal === 'custom') {
             popupExpiry.readOnly = false;
             daysIndicator.innerHTML = 'Select a manual date';
@@ -7553,36 +7525,29 @@ function calculatePopupExpiry() {
         
         let newDate;
         
-        // Check if customer is ACTIVE (oldExpiry >= today)
         if (oldExpiryVal && oldExpiryVal !== '') {
             let oldExpiryDate = new Date(oldExpiryVal);
             oldExpiryDate.setHours(0, 0, 0, 0);
             
             if (oldExpiryDate >= today) {
-                // ACTIVE: Add days to old expiry date
                 newDate = new Date(oldExpiryVal);
                 newDate.setDate(newDate.getDate() + parseInt(durVal));
             } else {
-                // EXPIRED: Add days to today's date
                 newDate = new Date();
                 newDate.setDate(today.getDate() + parseInt(durVal));
             }
         } else {
-            // NO expiry date: Add days to today's date
             newDate = new Date();
             newDate.setDate(today.getDate() + parseInt(durVal));
         }
         
-        // Set the new expiry date
         popupExpiry.value = newDate.toISOString().split('T')[0];
         
-        // Calculate days difference between today and new expiry date
         const newExpiryDate = new Date(popupExpiry.value);
         newExpiryDate.setHours(0, 0, 0, 0);
         const diffTime = newExpiryDate - today;
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         
-        // Update days indicator
         if (diffDays >= 0) {
             daysIndicator.innerHTML = `Total Validity: ${diffDays} Days`;
             daysIndicator.style.color = 'var(--primary)';
@@ -7670,7 +7635,6 @@ function calculatePopupTotal() {
     }
 }
 
-// ========== UPDATED savePopupPayment WITH ONLINE TRACKING ==========
 async function savePopupPayment() {
     try {
         let mobile = document.getElementById('popupMobile');
@@ -7684,7 +7648,6 @@ async function savePopupPayment() {
         let duration = document.getElementById('popupDuration');
         let btn = document.getElementById('popupSaveBtn');
         
-        // Online payment tracking fields
         let onlineSection = document.getElementById('onlineDetailsSection');
         let paidToDropdown = document.getElementById('paidToDropdown');
         let customerUpi = document.getElementById('customerUpi');
@@ -7705,23 +7668,19 @@ async function savePopupPayment() {
         let oldExpiryVal = oldExpiry.value;
         let durationVal = duration.value;
         
-        // Online payment tracking variables
         let onlineFrom = '';
-        let onlineTo = 'self'; // Default to self for admin safety
+        let onlineTo = 'self';
         let onlineStatus = 'Success';
         
         if (onlineVal > 0) {
-            // Check if online section is visible and has values
             if (onlineSection && !onlineSection.classList.contains('hidden')) {
                 if (paidToDropdown) onlineTo = paidToDropdown.value;
                 if (customerUpi) onlineFrom = customerUpi.value.trim();
                 
-                // If admin, ensure onlineTo is 'self'
                 if (curUser.role === 'admin') {
                     onlineTo = 'self';
                     onlineStatus = 'Success';
                 } else {
-                    // Validate paid to selection for non-admin
                     if (!onlineTo) {
                         alert("❌ Please select who the online payment was sent to!");
                         if (navigator.vibrate) navigator.vibrate(200);
@@ -7730,7 +7689,6 @@ async function savePopupPayment() {
                         return;
                     }
                     
-                    // Determine status based on who it's paid to
                     if (onlineTo === 'self') {
                         onlineStatus = 'Success';
                     } else {
@@ -7832,7 +7790,6 @@ async function savePopupPayment() {
             db[idx].expiry = newExpiryVal;
             db[idx].status = 'active';
             
-            // Auto-revoke assignment after payment
             if (db[idx].assignedTo) {
                 db[idx].assignedTo = "";
             }
@@ -7851,7 +7808,6 @@ async function savePopupPayment() {
         
         historyDB.push(tx);
         
-        // Update pending approvals if status is Pending
         if (onlineStatus === 'Pending' && curUser.role !== 'admin') {
             updatePendingApprovals();
         }
@@ -7885,7 +7841,6 @@ async function savePopupPayment() {
     }
 }
 
-// ========== UPDATED submitDuePayment WITH ONLINE TRACKING ==========
 async function submitDuePayment() {
     try {
         let mobile = document.getElementById('dpMobile');
@@ -7895,7 +7850,6 @@ async function submitDuePayment() {
         let remark = document.getElementById('dpRemark');
         let btn = document.getElementById('btnDuePay');
         
-        // Online payment tracking fields
         let onlineSection = document.getElementById('duePayOnlineDetailsSection');
         let paidToDropdown = document.getElementById('duePayPaidToDropdown');
         let customerUpi = document.getElementById('duePayCustomerUpi');
@@ -7908,23 +7862,19 @@ async function submitDuePayment() {
         let slipVal = slip.value.trim();
         let remarkVal = remark.value.trim();
         
-        // Online payment tracking variables
         let onlineFrom = '';
-        let onlineTo = 'self'; // Default to self for admin safety
+        let onlineTo = 'self';
         let onlineStatus = 'Success';
         
         if (onlineVal > 0) {
-            // Check if online section is visible and has values
             if (onlineSection && !onlineSection.classList.contains('hidden')) {
                 if (paidToDropdown) onlineTo = paidToDropdown.value;
                 if (customerUpi) onlineFrom = customerUpi.value.trim();
                 
-                // If admin, ensure onlineTo is 'self'
                 if (curUser.role === 'admin') {
                     onlineTo = 'self';
                     onlineStatus = 'Success';
                 } else {
-                    // Validate paid to selection for non-admin
                     if (!onlineTo) {
                         alert("❌ Please select who the online payment was sent to!");
                         if (navigator.vibrate) navigator.vibrate(200);
@@ -7933,7 +7883,6 @@ async function submitDuePayment() {
                         return;
                     }
                     
-                    // Determine status based on who it's paid to
                     if (onlineTo === 'self') {
                         onlineStatus = 'Success';
                     } else {
@@ -7943,7 +7892,6 @@ async function submitDuePayment() {
             }
         }
         
-        // Fixed validation - clearer message, but still requires payment amount for due payment
         if (cashVal === 0 && onlineVal === 0) {
             alert("❌ You must enter an amount greater than 0 to pay the due!");
             cash.classList.add('error-field');
@@ -8027,7 +7975,6 @@ async function submitDuePayment() {
         if (idx > -1) {
             db[idx].paid = newTotalPaid;
             
-            // Auto-revoke assignment after payment
             if (db[idx].assignedTo) {
                 db[idx].assignedTo = "";
             }
@@ -8046,7 +7993,6 @@ async function submitDuePayment() {
         
         historyDB.push(tx);
         
-        // Update pending approvals if status is Pending
         if (onlineStatus === 'Pending' && curUser.role !== 'admin') {
             updatePendingApprovals();
         }
@@ -8213,7 +8159,6 @@ function calculateAddonTotal() {
     }
 }
 
-// ========== UPDATED saveAddon WITH ONLINE TRACKING ==========
 async function saveAddon() {
     try {
         let mobile = document.getElementById('addonMobile');
@@ -8224,7 +8169,6 @@ async function saveAddon() {
         let slip = document.getElementById('addonSlip');
         let btn = document.getElementById('addonSubmitBtn');
         
-        // Online payment tracking fields
         let onlineSection = document.getElementById('addonOnlineDetailsSection');
         let paidToDropdown = document.getElementById('addonPaidToDropdown');
         let customerUpi = document.getElementById('addonCustomerUpi');
@@ -8238,23 +8182,19 @@ async function saveAddon() {
         let remarkVal = remark.value.trim();
         let slipVal = slip.value.trim();
         
-        // Online payment tracking variables
         let onlineFrom = '';
-        let onlineTo = 'self'; // Default to self for admin safety
+        let onlineTo = 'self';
         let onlineStatus = 'Success';
         
         if (onlineVal > 0) {
-            // Check if online section is visible and has values
             if (onlineSection && !onlineSection.classList.contains('hidden')) {
                 if (paidToDropdown) onlineTo = paidToDropdown.value;
                 if (customerUpi) onlineFrom = customerUpi.value.trim();
                 
-                // If admin, ensure onlineTo is 'self'
                 if (curUser.role === 'admin') {
                     onlineTo = 'self';
                     onlineStatus = 'Success';
                 } else {
-                    // Validate paid to selection for non-admin
                     if (!onlineTo) {
                         alert("❌ Please select who the online payment was sent to!");
                         if (navigator.vibrate) navigator.vibrate(200);
@@ -8263,7 +8203,6 @@ async function saveAddon() {
                         return;
                     }
                     
-                    // Determine status based on who it's paid to
                     if (onlineTo === 'self') {
                         onlineStatus = 'Success';
                     } else {
@@ -8273,7 +8212,6 @@ async function saveAddon() {
             }
         }
         
-        // Fixed validation - only check amount > 0, allow 0 payment if it's adjusted by advance
         if (amountVal <= 0) {
             alert("❌ Please enter add-on amount!");
             amount.classList.add('error-field');
@@ -8281,8 +8219,6 @@ async function saveAddon() {
             setTimeout(() => amount.classList.remove('error-field'), 500);
             return;
         }
-        
-        // Removed the strict cash+online check - allow 0 payment if advance covers it
         
         if (!remarkVal) {
             alert("Remark is required for add-on payment!");
@@ -8357,7 +8293,6 @@ async function saveAddon() {
             db[idx].total = newTotalBill;
             db[idx].paid = newTotalPaid;
             
-            // Auto-revoke assignment after payment
             if (db[idx].assignedTo) {
                 db[idx].assignedTo = "";
             }
@@ -8376,7 +8311,6 @@ async function saveAddon() {
         
         historyDB.push(tx);
         
-        // Update pending approvals if status is Pending
         if (onlineStatus === 'Pending' && curUser.role !== 'admin') {
             updatePendingApprovals();
         }
@@ -8410,17 +8344,13 @@ async function saveAddon() {
     }
 }
 
-// ========== APPROVAL MODAL FUNCTIONS ==========
-
 function updatePendingApprovals() {
     try {
-        // Filter transactions where onlineStatus is 'Pending' and onlineTo matches current user's email
         pendingApprovals = historyDB.filter(t => 
             t.onlineStatus === 'Pending' && 
             t.onlineTo === curUser.email
         );
         
-        // Update pending approval count
         const pendingCountElement = document.getElementById('pendingApprovalCount');
         if (pendingCountElement) {
             pendingCountElement.innerText = pendingApprovals.length;
@@ -8488,15 +8418,12 @@ function closeApprovalModal() {
     }
 }
 
-// ========== UPDATED: acceptOnlinePayment WITH LOADING STATE ==========
 async function acceptOnlinePayment(txId, btn) {
     try {
-        // Set loading state on the clicked button
         if (btn) {
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner"></span> Processing...';
             
-            // Find the parent .report-item and disable all buttons in it
             const reportItem = btn.closest('.report-item');
             if (reportItem) {
                 const allButtons = reportItem.querySelectorAll('button');
@@ -8514,7 +8441,6 @@ async function acceptOnlinePayment(txId, btn) {
         
         historyDB[txIndex].onlineStatus = 'Success';
         
-        // Save to cloud
         if (cloudUrl && !window.isDemoMode) {
             try {
                 await fetchWithRetry(cloudUrl + "?action=saveTransaction&email=" + curUser.email + "&password=" + curUser.password, {
@@ -8531,7 +8457,6 @@ async function acceptOnlinePayment(txId, btn) {
         
         alert("✅ Online payment approved successfully!");
         
-        // Refresh the approval list
         if (document.getElementById('approvalModal').style.display === 'flex') {
             openApprovalModal();
         }
@@ -8542,15 +8467,12 @@ async function acceptOnlinePayment(txId, btn) {
     }
 }
 
-// ========== UPDATED: rejectOnlinePayment WITH LOADING STATE ==========
 async function rejectOnlinePayment(txId, btn) {
     try {
-        // Set loading state on the clicked button
         if (btn) {
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner"></span> Processing...';
             
-            // Find the parent .report-item and disable all buttons in it
             const reportItem = btn.closest('.report-item');
             if (reportItem) {
                 const allButtons = reportItem.querySelectorAll('button');
@@ -8568,11 +8490,8 @@ async function rejectOnlinePayment(txId, btn) {
         
         historyDB[txIndex].onlineStatus = 'Rejected';
         
-        // Optionally convert online amount back to due
-        // For now, just change status
         alert("ℹ️ Note: The online amount has been marked as rejected. Consider collecting the payment via cash or asking the customer to send to the correct account.");
         
-        // Save to cloud
         if (cloudUrl && !window.isDemoMode) {
             try {
                 await fetchWithRetry(cloudUrl + "?action=saveTransaction&email=" + curUser.email + "&password=" + curUser.password, {
@@ -8589,7 +8508,6 @@ async function rejectOnlinePayment(txId, btn) {
         
         alert("❌ Online payment rejected!");
         
-        // Refresh the approval list
         if (document.getElementById('approvalModal').style.display === 'flex') {
             openApprovalModal();
         }
@@ -8600,18 +8518,14 @@ async function rejectOnlinePayment(txId, btn) {
     }
 }
 
-// ========== HANDOVER APPROVAL FUNCTIONS ==========
-
 function updatePendingHandovers() {
     try {
-        // Filter handover transactions where status is 'Pending' and handoverTo matches current user's email
         const pendingHandovers = historyDB.filter(t => 
             t.type === 'HANDOVER' && 
             t.handoverStatus === 'Pending' && 
             t.handoverTo === curUser.email
         );
         
-        // Update pending handover count
         const pendingCountElement = document.getElementById('pendingHandoverCount');
         if (pendingCountElement) {
             pendingCountElement.innerText = pendingHandovers.length;
@@ -8633,7 +8547,6 @@ function openHandoverApprovalModal() {
         
         if (!handoverModal || !pendingList) return;
         
-        // Filter pending handovers for this user
         const pendingHandovers = historyDB.filter(t => 
             t.type === 'HANDOVER' && 
             t.handoverStatus === 'Pending' && 
@@ -8645,7 +8558,6 @@ function openHandoverApprovalModal() {
         } else {
             let html = '';
             pendingHandovers.forEach(tx => {
-                // Format date
                 const handoverDate = tx.date ? formatDatePretty(tx.date) : 'Unknown date';
                 
                 html += `
@@ -8689,23 +8601,19 @@ function closeHandoverApprovalModal() {
     }
 }
 
-// ========== REQUIREMENT 4: editHandoverAmount FUNCTION ==========
 function editHandoverAmount(txId, button) {
     try {
-        // Prompt for new amount
         const newAmountStr = prompt("Enter actual received amount:", "");
         
-        if (newAmountStr === null) return; // User cancelled
+        if (newAmountStr === null) return;
         
         const newAmount = parseInt(newAmountStr);
         
-        // Validate amount
         if (isNaN(newAmount) || newAmount < 0) {
             alert("❌ Please enter a valid positive amount!");
             return;
         }
         
-        // Call processHandover with edit action
         processHandover(txId, 'Success', newAmount, button);
     } catch(e) {
         console.error("Edit handover amount error:", e);
@@ -8713,10 +8621,8 @@ function editHandoverAmount(txId, button) {
     }
 }
 
-// ========== REQUIREMENT 3: processHandover FUNCTION ==========
 async function processHandover(txId, status, newAmount, button) {
     try {
-        // Find the transaction in historyDB
         const txIndex = historyDB.findIndex(t => t.id == txId);
         if (txIndex === -1) {
             alert("Transaction not found!");
@@ -8725,36 +8631,30 @@ async function processHandover(txId, status, newAmount, button) {
         
         const tx = historyDB[txIndex];
         
-        // Find the handover item element
         const handoverItem = document.getElementById(`handover-${txId}`);
         if (handoverItem) {
             handoverItem.classList.add('processing');
         }
         
-        // Update button states
         if (button) {
             const originalText = button.innerText;
             button.disabled = true;
             button.innerHTML = '<span class="spinner"></span> Processing...';
             
-            // Also disable all buttons in this handover item
             if (handoverItem) {
                 const allButtons = handoverItem.querySelectorAll('button');
                 allButtons.forEach(btn => btn.disabled = true);
             }
         }
         
-        // If newAmount is provided, update the transaction
         if (newAmount !== null && !isNaN(newAmount)) {
             tx.paid = newAmount;
-            tx.cash = newAmount; // Assuming cash adjustment for simplicity
+            tx.cash = newAmount;
             tx.remark = (tx.remark || '') + ' (Edited by receiver)';
         }
         
-        // Set handover status
         tx.handoverStatus = status;
         
-        // Save to cloud using existing fetch call
         if (cloudUrl && !window.isDemoMode) {
             try {
                 await fetchWithRetry(cloudUrl + "?action=saveTransaction&email=" + curUser.email + "&password=" + curUser.password, {
@@ -8767,19 +8667,14 @@ async function processHandover(txId, status, newAmount, button) {
             }
         }
         
-        // Save locally
         saveLocal();
-        
-        // Update UI
         updateDashboardBoxes();
         updatePendingHandovers();
         
-        // Refresh the approval list if modal is still open
         if (document.getElementById('handoverApprovalModal').style.display === 'flex') {
             openHandoverApprovalModal();
         }
         
-        // Show success message
         const statusMessage = status === 'Success' ? '✅ Handover accepted' : '❌ Handover rejected';
         alert(statusMessage + (newAmount ? ` with edited amount: ₹${newAmount}` : ''));
         
@@ -8787,7 +8682,6 @@ async function processHandover(txId, status, newAmount, button) {
         console.error("Process handover error:", e);
         alert("Error processing handover. Please try again.");
         
-        // Remove processing class
         const handoverItem = document.getElementById(`handover-${txId}`);
         if (handoverItem) {
             handoverItem.classList.remove('processing');
@@ -8795,18 +8689,15 @@ async function processHandover(txId, status, newAmount, button) {
     }
 }
 
-// ========== UPDATED openFullProfile FUNCTION WITH ID-BASED FILTERING AND ASSIGNMENT UI ==========
 function openFullProfile(mobile) {
     try {
         let c = db.find(x => x.mobile && x.mobile.toString() === mobile.toString());
         if (!c) return;
         
-        // TASK 1: Strict permission check for staff
         if (curUser && curUser.role === 'staff') {
-            // Check if this customer is assigned to the current staff member
             if (!c.assignedTo || c.assignedTo !== curUser.email) {
                 alert("🔒 Permission Denied!\nYou cannot view this profile or collect payments. Please ask the Owner/Manager to assign this customer to you.");
-                return; // Stop the function, profile does not open
+                return;
             }
         }
         
@@ -8862,13 +8753,10 @@ function openFullProfile(mobile) {
             }
         }
         
-        // Display assigned badge if customer is assigned
         if (assignedBadge && assignedToName) {
             if (c.assignedTo) {
-                // Find staff name from cloud or staff list
                 assignedToName.innerText = "Assigned";
                 assignedBadge.classList.remove('hidden');
-                // Try to get staff name from staff list if available
                 try {
                     const staffList = JSON.parse(localStorage.getItem('pub_hisab_staff_list')) || [];
                     const staff = staffList.find(s => s.email === c.assignedTo);
@@ -8890,13 +8778,11 @@ function openFullProfile(mobile) {
         const currentDue = totalBill - totalPaid > 0 ? totalBill - totalPaid : 0;
         const currentAdvance = totalPaid - totalBill > 0 ? totalPaid - totalBill : 0;
         
-        // Update the balance card values
         if (profTotal) profTotal.innerText = '₹' + totalBill.toLocaleString();
         if (profPaid) profPaid.innerText = '₹' + totalPaid.toLocaleString();
         if (profDue) profDue.innerText = '₹' + currentDue.toLocaleString();
         if (profAdvance) profAdvance.innerText = '₹' + currentAdvance.toLocaleString();
         
-        // Get last transaction for this customer
         let custHistory = historyDB.filter(t => 
             (t.mobile && t.mobile.toString() === mobile.toString()) || 
             (c.id && t.id && t.id.toString() === c.id.toString()) || 
@@ -8974,14 +8860,9 @@ function openFullProfile(mobile) {
             profStatus.innerText = statusText;
         }
         
-        // --- START REQUIREMENT 1: FIXED Customer Profile Transaction History Visibility ---
-        // FIXED: Filter by mobile OR ID OR name to show history even after name/mobile update
-        // Now also check previousMobiles array if exists
         custHistory = historyDB.filter(t => {
-            // Check current mobile
             let isCurrentMobile = t.mobile && t.mobile.toString() === mobile.toString();
             
-            // Check previous mobiles if exists
             let isPreviousMobile = false;
             if (c.previousMobiles && Array.isArray(c.previousMobiles)) {
                 isPreviousMobile = c.previousMobiles.some(prevMobile => 
@@ -8989,7 +8870,6 @@ function openFullProfile(mobile) {
                 );
             }
             
-            // Check ID or name as fallback
             let isMatchByIdOrName = (c.id && t.id && t.id.toString() === c.id.toString()) || (t.name && t.name === c.name);
             
             return isCurrentMobile || isPreviousMobile || isMatchByIdOrName;
@@ -8998,7 +8878,6 @@ function openFullProfile(mobile) {
             if (dateCompare !== 0) return dateCompare;
             return b.id - a.id;
         });
-        // --- END REQUIREMENT 1 ---
         
         let historyHTML = '';
         if (custHistory.length === 0) {
@@ -9024,14 +8903,12 @@ function openFullProfile(mobile) {
                     typeColor = '#f59e0b';
                 }
                 
-                // Online payment status indicator
                 let onlineStatusHTML = '';
                 if (t.onlineStatus && t.onlineStatus !== 'Success' && t.online > 0) {
                     let statusClass = t.onlineStatus === 'Pending' ? 'online-status-pending' : 'online-status-rejected';
                     onlineStatusHTML = `<span class="online-status-badge ${statusClass}">${t.onlineStatus}</span>`;
                 }
                 
-                // Handover status indicator
                 let handoverStatusHTML = '';
                 if (t.type === 'HANDOVER' && t.handoverStatus) {
                     let statusClass = '';
@@ -9152,15 +9029,12 @@ function openFullProfile(mobile) {
                     actionGrid.innerHTML = buttons.join('');
                 }
                 
-                // TASK 2: Add "Assign to Staff" UI for Admin/Manager
                 if (assignStaffSection) {
                     assignStaffSection.classList.remove('hidden');
                     populateStaffDropdown(c.mobile);
                 }
             } 
-            // START: NEW ELSE IF BLOCK FOR STAFF ROLE
             else if (curUser.role === 'staff') {
-                // Staff role: only show Pay Due button if there's a due amount
                 if (currentDue > 0) {
                     actionGrid.innerHTML = `
                         <button class="btn-due" onclick="openDuePayment('${c.mobile}')">
@@ -9168,14 +9042,11 @@ function openFullProfile(mobile) {
                         </button>
                     `;
                 }
-                // If no due amount, show nothing (grid remains empty)
                 
-                // Ensure assign section is hidden for staff
                 if (assignStaffSection) {
                     assignStaffSection.classList.add('hidden');
                 }
             }
-            // END: NEW ELSE IF BLOCK FOR STAFF ROLE
             else {
                 if (assignStaffSection) {
                     assignStaffSection.classList.add('hidden');
@@ -9189,23 +9060,18 @@ function openFullProfile(mobile) {
     }
 }
 
-// ========== TASK 3: Staff Assignment Function with Loading UI ==========
 async function assignStaffToCustomer() {
-    // Get the assign button
     let btn = document.getElementById('btnAssignStaff');
     
-    // Set loading state at the beginning
     if (btn) {
         btn.disabled = true;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Assigning...';
     }
     
     try {
-        // Get current customer mobile from profile
         const profMobile = document.getElementById('profMobile');
         if (!profMobile) {
             alert("Customer mobile not found");
-            // Restore button state
             if (btn) {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fa-solid fa-check"></i> Assign';
@@ -9217,7 +9083,6 @@ async function assignStaffToCustomer() {
         const dropdown = document.getElementById('staffSelectDropdown');
         if (!dropdown) {
             alert("Dropdown not found");
-            // Restore button state
             if (btn) {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fa-solid fa-check"></i> Assign';
@@ -9228,7 +9093,6 @@ async function assignStaffToCustomer() {
         const selectedEmail = dropdown.value;
         if (!selectedEmail) {
             alert("Please select a staff member to assign");
-            // Restore button state
             if (btn) {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fa-solid fa-check"></i> Assign';
@@ -9236,11 +9100,9 @@ async function assignStaffToCustomer() {
             return;
         }
         
-        // Find customer index
         let idx = db.findIndex(x => x.mobile && x.mobile.toString() === mobile.toString());
         if (idx === -1) {
             alert("Customer not found!");
-            // Restore button state
             if (btn) {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fa-solid fa-check"></i> Assign';
@@ -9248,10 +9110,8 @@ async function assignStaffToCustomer() {
             return;
         }
         
-        // Update assignedTo field
         db[idx].assignedTo = selectedEmail;
         
-        // Save to cloud
         if (cloudUrl && !window.isDemoMode) {
             try {
                 await fetchWithRetry(cloudUrl + "?action=saveCustomer&email=" + curUser.email + "&password=" + curUser.password, {
@@ -9264,10 +9124,8 @@ async function assignStaffToCustomer() {
             }
         }
         
-        // Save local
         saveLocal();
         
-        // Update badge
         const assignedBadge = document.getElementById('assignedBadge');
         const assignedToName = document.getElementById('assignedToName');
         if (assignedBadge && assignedToName) {
@@ -9282,7 +9140,6 @@ async function assignStaffToCustomer() {
         console.error("Assign staff error:", e);
         alert("Error assigning staff. Please try again.");
     } finally {
-        // Restore button state at the end
         if (btn) {
             btn.disabled = false;
             btn.innerHTML = '<i class="fa-solid fa-check"></i> Assign';
@@ -9290,17 +9147,14 @@ async function assignStaffToCustomer() {
     }
 }
 
-// ========== REQUIREMENT 2: populateStaffDropdown FUNCTION ==========
 async function populateStaffDropdown(currentMobile) {
     try {
         const dropdown = document.getElementById('staffSelectDropdown');
         if (!dropdown) return;
         
-        // Disable and show loading
         dropdown.disabled = true;
         dropdown.innerHTML = '<option value="">Loading staff list...</option>';
         
-        // Get staff list from cloud or localStorage
         let staffList = [];
         
         if (cloudUrl && curUser && !window.isDemoMode) {
@@ -9308,7 +9162,6 @@ async function populateStaffDropdown(currentMobile) {
                 const response = await fetch(cloudUrl + "?action=getStaffList&email=" + curUser.email + "&password=" + curUser.password);
                 if (response.ok) {
                     staffList = await response.json();
-                    // Cache in localStorage
                     localStorage.setItem('pub_hisab_staff_list', JSON.stringify(staffList));
                 }
             } catch(e) {
@@ -9316,7 +9169,6 @@ async function populateStaffDropdown(currentMobile) {
             }
         }
         
-        // If cloud failed, try localStorage
         if (staffList.length === 0) {
             try {
                 staffList = JSON.parse(localStorage.getItem('pub_hisab_staff_list')) || [];
@@ -9325,15 +9177,12 @@ async function populateStaffDropdown(currentMobile) {
             }
         }
         
-        // --- START REQUIREMENT 2: Hide logged-in user from dropdown ---
-        // Filter out admin, role 'admin', and the currently logged-in user (curUser.email)
         const activeStaff = staffList.filter(s => 
             s.email !== 'admin' && 
             s.role !== 'admin' && 
             s.email !== curUser.email && 
             !s.blocked
         );
-        // --- END REQUIREMENT 2 ---
         
         if (activeStaff.length === 0) {
             dropdown.innerHTML = '<option value="">No staff available</option>';
@@ -9341,7 +9190,6 @@ async function populateStaffDropdown(currentMobile) {
             return;
         }
         
-        // Build dropdown options
         let options = '<option value="">Select Staff</option>';
         activeStaff.forEach(staff => {
             let roleText = staff.role === 'manager' ? ' (Manager)' : '';
@@ -9351,7 +9199,6 @@ async function populateStaffDropdown(currentMobile) {
         dropdown.innerHTML = options;
         dropdown.disabled = false;
         
-        // Pre-select current assigned staff if any
         const c = db.find(x => x.mobile && x.mobile.toString() === currentMobile.toString());
         if (c && c.assignedTo) {
             dropdown.value = c.assignedTo;
@@ -9366,23 +9213,18 @@ async function populateStaffDropdown(currentMobile) {
     }
 }
 
-// ========== REQUIREMENT 3: revokeStaffAccess FUNCTION WITH LOADING UI ==========
 async function revokeStaffAccess() {
-    // Get the revoke button
     let btn = document.getElementById('btnRevokeStaff');
     
-    // Set loading state at the beginning
     if (btn) {
         btn.disabled = true;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Revoking...';
     }
     
     try {
-        // 1. Get current customer mobile from profile
         const profMobile = document.getElementById('profMobile');
         if (!profMobile) {
             alert("Customer mobile not found");
-            // Restore button state
             if (btn) {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fa-solid fa-xmark"></i> Revoke';
@@ -9391,11 +9233,9 @@ async function revokeStaffAccess() {
         }
         const mobile = profMobile.innerText;
         
-        // 2. Find customer index in db
         let idx = db.findIndex(x => x.mobile && x.mobile.toString() === mobile.toString());
         if (idx === -1) {
             alert("Customer not found!");
-            // Restore button state
             if (btn) {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fa-solid fa-xmark"></i> Revoke';
@@ -9403,10 +9243,8 @@ async function revokeStaffAccess() {
             return;
         }
         
-        // 3. Set assignedTo to empty string
         db[idx].assignedTo = "";
         
-        // 4. Perform cloud save using fetchWithRetry
         if (cloudUrl && !window.isDemoMode) {
             try {
                 await fetchWithRetry(cloudUrl + "?action=saveCustomer&email=" + curUser.email + "&password=" + curUser.password, {
@@ -9419,23 +9257,19 @@ async function revokeStaffAccess() {
             }
         }
         
-        // 5. Save local data
         saveLocal();
         
-        // 6. Hide assignedBadge and clear assignedToName in the UI
         const assignedBadge = document.getElementById('assignedBadge');
         const assignedToName = document.getElementById('assignedToName');
         if (assignedBadge) assignedBadge.classList.add('hidden');
         if (assignedToName) assignedToName.innerText = "";
         
-        // 7. Show success alert
         alert("✅ Staff access revoked successfully!");
         
     } catch(e) {
         console.error("Revoke staff access error:", e);
         alert("Error revoking access. Please try again.");
     } finally {
-        // Restore button state at the end
         if (btn) {
             btn.disabled = false;
             btn.innerHTML = '<i class="fa-solid fa-xmark"></i> Revoke';
@@ -9482,19 +9316,11 @@ function resetForm() {
     }
 }
 
-// ========== UPDATED: Calculate Liability Function (Corrected for Role-Based Logic) ==========
-/**
- * UPDATED: Calculate user's cash liability (Cash In Hand)
- * For Staff/Manager: Cash Collected + Online Payments Received DIRECTLY by them - Handovers Given
- * For Admin: Total money they have received from handovers (Cash + Online that was routed to them)
- */
 function calculateLiability() {
     try {
         if (!curUser || !historyDB) return 0;
         
-        // For Admin: Their Cash In Hand is the total amount of handovers they have accepted from staff/manager
         if (curUser.role === 'admin') {
-            // Admin's cash in hand is only the sum of all successful handovers made TO them
             const adminHandovers = historyDB.filter(t => 
                 t.type === 'HANDOVER' && 
                 t.handoverTo === curUser.email && 
@@ -9503,15 +9329,11 @@ function calculateLiability() {
             return adminHandovers.reduce((sum, t) => sum + safeParseInt(t.paid), 0);
         }
         
-        // For Staff or Manager: Calculate the money they are physically holding
-        // 1. Own Direct Collections (Cash + Online paid to SELF)
         const ownCollections = historyDB
             .filter(t => t.collectorId === curUser.email && t.type !== 'HANDOVER')
             .reduce((sum, t) => {
-                // Always add cash
                 let amount = safeParseInt(t.cash);
                 
-                // Only add online amount if it was paid TO the current user (Self)
                 if (safeParseInt(t.online) > 0) {
                     if (t.onlineTo === 'self' || t.onlineTo === curUser.email) {
                         amount += safeParseInt(t.online);
@@ -9520,22 +9342,18 @@ function calculateLiability() {
                 return sum + amount;
             }, 0);
         
-        // 2. Received from Other Staff (Cash Handovers that are accepted)
         const receivedCashHandovers = historyDB
             .filter(t => t.type === 'HANDOVER' && t.handoverTo === curUser.email && t.handoverStatus === 'Success')
             .reduce((sum, t) => sum + safeParseInt(t.paid), 0);
         
-        // 3. Received from Other Staff (Online Routed to current user)
         const receivedOnlineRouted = historyDB
             .filter(t => t.type !== 'HANDOVER' && t.onlineTo === curUser.email && t.collectorId !== curUser.email && t.onlineStatus === 'Success')
             .reduce((sum, t) => sum + safeParseInt(t.online), 0);
         
-        // 4. Given to Others (Handovers made by current user)
         const givenToOthers = historyDB
             .filter(t => t.type === 'HANDOVER' && t.collectorId === curUser.email && t.handoverStatus !== 'Rejected')
             .reduce((sum, t) => sum + safeParseInt(t.paid), 0);
         
-        // Liability = Own Collections + Received Cash + Received Online - Given to Others
         return ownCollections + receivedCashHandovers + receivedOnlineRouted - givenToOthers;
     } catch(e) {
         console.error("Calculate liability error:", e);
@@ -9543,7 +9361,6 @@ function calculateLiability() {
     }
 }
 
-// ========== NEW: Update Cash in Hand Dashboard ==========
 function updateCashInHandDashboard() {
     try {
         const cashAmountElement = document.getElementById('myCashInHandAmount');
@@ -9556,14 +9373,12 @@ function updateCashInHandDashboard() {
     }
 }
 
-// ========== NEW: Admin Dashboard Helper Functions ==========
 function getCurrentMonthBill() {
     try {
         const currentYear = new Date().getFullYear();
         const currentMonth = new Date().getMonth() + 1;
         const monthStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
         
-        // Filter transactions in current month, sum total amount (t.total)
         const monthTransactions = historyDB.filter(t => {
             if (!t.date) return false;
             return t.date.startsWith(monthStr) && t.type !== 'HANDOVER';
@@ -9582,7 +9397,6 @@ function getCurrentMonthCollection() {
         const currentMonth = new Date().getMonth() + 1;
         const monthStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
         
-        // Filter transactions in current month, exclude HANDOVER, sum paid amount
         const monthTransactions = historyDB.filter(t => {
             if (!t.date) return false;
             return t.date.startsWith(monthStr) && t.type !== 'HANDOVER';
@@ -9597,22 +9411,16 @@ function getCurrentMonthCollection() {
 
 function getStaffPendingBalance() {
     try {
-        // UPDATED: Total money physically held by staff
-        // This should be: (Cash Collections + Online Payments Received by Staff) - Handovers Given to Owner/Manager
         const staffBalances = {};
         
-        // First, sum all cash collected by staff
-        // Also sum online payments where the payment was made TO the staff
         historyDB.forEach(t => {
             if (t.type !== 'HANDOVER') {
                 const staffId = t.collectorId;
                 if (staffId && staffId !== 'admin' && staffId !== curUser.email) {
                     if (!staffBalances[staffId]) staffBalances[staffId] = { name: t.collector || staffId, amount: 0 };
                     
-                    // Add cash always
                     let amount = safeParseInt(t.cash);
                     
-                    // Add online only if paid to this staff member (or 'self' which means to them)
                     if (safeParseInt(t.online) > 0) {
                         if (t.onlineTo === 'self' || t.onlineTo === staffId) {
                             amount += safeParseInt(t.online);
@@ -9624,7 +9432,6 @@ function getStaffPendingBalance() {
             }
         });
         
-        // Subtract handovers made by staff (money they have given to owner/manager)
         historyDB.forEach(t => {
             if (t.type === 'HANDOVER' && t.collectorId && t.collectorId !== 'admin' && t.handoverStatus !== 'Rejected') {
                 const staffId = t.collectorId;
@@ -9634,7 +9441,6 @@ function getStaffPendingBalance() {
             }
         });
         
-        // Sum all staff balances that are positive (pending money held by staff)
         let total = 0;
         Object.values(staffBalances).forEach(staff => {
             if (staff.amount > 0) total += staff.amount;
@@ -9649,8 +9455,6 @@ function getStaffPendingBalance() {
 
 function getAdminCashInHand() {
     try {
-        // Admin's cash in hand: Total money handed over TO admin by staff
-        // Filter HANDOVER type with handoverTo === admin's email (or 'admin') and status === 'Success'
         const adminEmail = curUser.email;
         const adminHandovers = historyDB.filter(t => 
             t.type === 'HANDOVER' && 
@@ -9696,10 +9500,8 @@ function updateAdminDashboardBoxes() {
     }
 }
 
-// ========== Drilldown Functions for Admin New Boxes ==========
 function openDrilldownModalWithFilter(filterType) {
     try {
-        // Store filter type globally for drilldown
         window.currentDrilldownFilter = filterType;
         openDrilldownModal();
     } catch(e) {
@@ -9720,16 +9522,13 @@ function openStaffPendingDrilldown() {
         if (backBtn) backBtn.classList.remove('hidden');
         
         if (listArea) {
-            // Generate staff pending balance breakdown
             const staffBalances = {};
             
-            // Calculate net balance per staff (collections - handovers)
             historyDB.forEach(t => {
                 if (t.type !== 'HANDOVER' && t.collectorId && t.collectorId !== 'admin') {
                     const staffId = t.collectorId;
                     if (!staffBalances[staffId]) staffBalances[staffId] = { name: t.collector || staffId, amount: 0 };
                     
-                    // Cash + Online paid to them
                     let amount = safeParseInt(t.cash);
                     if (safeParseInt(t.online) > 0 && (t.onlineTo === 'self' || t.onlineTo === staffId)) {
                         amount += safeParseInt(t.online);
@@ -9776,11 +9575,9 @@ function openStaffHandoverHistory(staffName) {
         const listArea = document.getElementById('drilldownListArea');
         const backBtn = document.getElementById('drilldownBackBtn');
         
-        // Find staff email from name (approximate)
         const staffTx = historyDB.find(t => t.collector === staffName);
         const staffEmail = staffTx ? staffTx.collectorId : null;
         
-        // Get handovers made by this staff
         const handovers = historyDB.filter(t => 
             t.type === 'HANDOVER' && 
             (t.collector === staffName || t.collectorId === staffEmail) &&
@@ -9824,13 +9621,10 @@ function renderDrilldownTransactionsWithFilter(dateStr) {
         let dayTransactions = [];
         
         if (window.currentDrilldownFilter === 'currentMonthBill') {
-            // Show total billed amounts for each transaction on that day
             dayTransactions = historyDB.filter(t => t.date === dateStr && t.type !== 'HANDOVER');
         } else if (window.currentDrilldownFilter === 'currentMonthCollection') {
-            // Show collected amounts for each transaction on that day, exclude HANDOVER
             dayTransactions = historyDB.filter(t => t.date === dateStr && t.type !== 'HANDOVER');
         } else if (window.currentDrilldownFilter === 'adminCashInHand') {
-            // Show handovers received by admin on that day
             dayTransactions = historyDB.filter(t => 
                 t.type === 'HANDOVER' && 
                 t.date === dateStr && 
@@ -9838,7 +9632,6 @@ function renderDrilldownTransactionsWithFilter(dateStr) {
                 t.handoverStatus === 'Success'
             );
         } else {
-            // Default: user's own collections
             dayTransactions = historyDB.filter(t => 
                 t.collectorId === curUser.email && 
                 t.type !== 'HANDOVER' &&
@@ -9890,7 +9683,6 @@ function renderDrilldownTransactionsWithFilter(dateStr) {
     }
 }
 
-// Override renderDrilldownDays to handle admin filters
 function renderDrilldownDaysAdmin(year, month) {
     try {
         drilldownCurrentMonth = month;
@@ -9924,7 +9716,6 @@ function renderDrilldownDaysAdmin(year, month) {
             );
         }
         
-        // Group by day
         const days = {};
         
         dayTransactions.forEach(t => {
@@ -9970,7 +9761,6 @@ function renderDrilldownDaysAdmin(year, month) {
     }
 }
 
-// Override renderDrilldownMonths to handle admin filters
 function renderDrilldownMonthsAdmin(year) {
     try {
         drilldownCurrentYear = year;
@@ -10003,7 +9793,6 @@ function renderDrilldownMonthsAdmin(year) {
             );
         }
         
-        // Group by month
         const months = {};
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         
@@ -10047,7 +9836,6 @@ function renderDrilldownMonthsAdmin(year) {
     }
 }
 
-// Override renderDrilldownYears to handle admin filters
 function renderDrilldownYearsAdmin() {
     try {
         const listArea = document.getElementById('drilldownListArea');
@@ -10124,7 +9912,6 @@ function renderDrilldownYearsAdmin() {
     }
 }
 
-// Override openDrilldownModal to handle admin filter cases
 const originalOpenDrilldownModal = window.openDrilldownModal;
 window.openDrilldownModal = function() {
     try {
@@ -10145,18 +9932,14 @@ window.openDrilldownModal = function() {
             }
         }
         
-        // Check if we're in admin financial drilldown mode
         if (window.currentDrilldownFilter === 'currentMonthBill' || 
             window.currentDrilldownFilter === 'currentMonthCollection' || 
             window.currentDrilldownFilter === 'adminCashInHand') {
-            // Show liability element for these?
             if (liabilityElement) liabilityElement.style.display = 'none';
-            // Hide handover button
             if (handoverBtn) handoverBtn.style.display = 'none';
             
             renderDrilldownYearsAdmin();
         } else {
-            // Reset for regular cash in hand drilldown
             if (liabilityElement) liabilityElement.style.display = 'block';
             if (handoverBtn) handoverBtn.style.display = 'block';
             
@@ -10177,7 +9960,6 @@ window.openDrilldownModal = function() {
     }
 };
 
-// Override goBackDrilldown to handle admin filters
 const originalGoBackDrilldown = window.goBackDrilldown;
 window.goBackDrilldown = function() {
     try {
@@ -10205,7 +9987,6 @@ window.goBackDrilldown = function() {
     }
 };
 
-// ========== UPDATED: updateDashboardBoxes (Fixed Handover Not Adding to Today's Collection) ==========
 function updateDashboardBoxes() {
     try {
         let today = getTodayStr();
@@ -10218,14 +9999,12 @@ function updateDashboardBoxes() {
         let teamTodayCollection = 0;
         let teamTodayCount = 0;
         
-        // Apply color classes to dashboard boxes
         const totalDueBox = document.querySelector('.dashboard-box.total-due');
         const myCollectionBox = document.querySelector('.dashboard-box.my-collection');
         const shopCollectionBox = document.querySelector('.dashboard-box.shop-collection');
         const teamCollectionBox = document.querySelector('.dashboard-box.team-collection');
         const advancedFilterBox = document.querySelector('.dashboard-box.advanced-filter');
         
-        // Apply subtle color backgrounds
         if (totalDueBox) totalDueBox.classList.add('total-due');
         if (myCollectionBox) myCollectionBox.classList.add('my-collection');
         if (shopCollectionBox) shopCollectionBox.classList.add('shop-collection');
@@ -10245,14 +10024,10 @@ function updateDashboardBoxes() {
         let todayTransactions = historyDB.filter(t => t.date === today);
         
         if (curUser) {
-            // FIX: Filter out HANDOVER transactions from Today's My Collection
-            // A handover is an internal transfer of cash, not a collection from a customer.
             let myTransactions = todayTransactions.filter(t => t.collectorId === curUser.email && t.type !== 'HANDOVER');
             myTodayCollection = myTransactions.reduce((sum, t) => {
-                // Always add cash
                 let amount = safeParseInt(t.cash);
                 
-                // Only add online if it was paid to self (or no onlineTo field)
                 if (safeParseInt(t.online) > 0) {
                     if (!t.onlineTo || t.onlineTo === 'self' || t.onlineTo === curUser.email) {
                         amount += safeParseInt(t.online);
@@ -10264,7 +10039,6 @@ function updateDashboardBoxes() {
         }
         
         if (curUser && curUser.role === 'admin') {
-            // For admin shop collection, also exclude HANDOVER type
             const nonHandoverTransactions = todayTransactions.filter(t => t.type !== 'HANDOVER');
             shopTodayCollection = nonHandoverTransactions.reduce((sum, t) => sum + safeParseInt(t.paid), 0);
             let uniqueCustomers = new Set();
@@ -10286,7 +10060,6 @@ function updateDashboardBoxes() {
         }
         
         if (curUser && curUser.role === 'manager') {
-            // For manager team collection, also exclude HANDOVER type
             const nonHandoverTransactions = todayTransactions.filter(t => t.type !== 'HANDOVER');
             teamTodayCollection = nonHandoverTransactions.reduce((sum, t) => {
                 if (t.collectorId && 
@@ -10331,14 +10104,10 @@ function updateDashboardBoxes() {
         if (myTodayAmount) myTodayAmount.innerText = '₹' + myTodayCollection.toLocaleString();
         if (myTodayCountEl) myTodayCountEl.innerText = myTodayCount + ' Transactions';
         
-        // Update pending approvals and handovers count
         updatePendingApprovals();
         updatePendingHandovers();
-        
-        // NEW: Update Cash in Hand dashboard
         updateCashInHandDashboard();
         
-        // Update admin dashboard boxes if user is admin
         if (curUser && curUser.role === 'admin') {
             updateAdminDashboardBoxes();
         }
@@ -10509,7 +10278,6 @@ function renderCustomers() {
                 }
             }
             
-            // Add assignment indicator in customer list
             let assignmentIndicator = '';
             if (c.assignedTo) {
                 assignmentIndicator = `<span class="assign-badge" style="margin-left: 6px;"><i class="fa-solid fa-user-check"></i></span>`;
@@ -10633,14 +10401,12 @@ function renderHistory() {
                     typeText = t.type || 'Payment';
             }
             
-            // Online payment status indicator
             let onlineStatusHTML = '';
             if (t.onlineStatus && t.onlineStatus !== 'Success' && t.online > 0) {
                 let statusClass = t.onlineStatus === 'Pending' ? 'online-status-pending' : 'online-status-rejected';
                 onlineStatusHTML = `<span class="online-status-badge ${statusClass}">${t.onlineStatus}</span>`;
             }
             
-            // Handover status indicator
             let handoverStatusHTML = '';
             if (t.type === 'HANDOVER' && t.handoverStatus) {
                 let statusClass = '';
@@ -10768,21 +10534,17 @@ function resetAndNav(p) {
     }
 }
 
-// ========== NEW: Drilldown Modal Functions ==========
-
 function openDrilldownModal() {
     try {
         const drilldownModal = document.getElementById('drilldownModal');
         if (!drilldownModal) return;
         
-        // Calculate and update liability
         const liability = calculateLiability();
         const liabilityElement = document.getElementById('drilldownLiabilityAmount');
         if (liabilityElement) {
             liabilityElement.innerText = '₹' + liability.toLocaleString();
         }
         
-        // Hide handover button for admin
         const handoverBtn = document.getElementById('drilldownHandoverBtn');
         if (handoverBtn) {
             if (curUser && curUser.role === 'admin') {
@@ -10792,20 +10554,16 @@ function openDrilldownModal() {
             }
         }
         
-        // Reset drilldown level
         drilldownCurrentLevel = 'years';
         drilldownCurrentYear = null;
         drilldownCurrentMonth = null;
         drilldownCurrentDate = null;
         
-        // Hide back button initially
         const backBtn = document.getElementById('drilldownBackBtn');
         if (backBtn) backBtn.classList.add('hidden');
         
-        // Render years
         renderDrilldownYears();
         
-        // Show modal
         drilldownModal.style.display = 'flex';
     } catch(e) {
         console.error("Open drilldown modal error:", e);
@@ -10826,13 +10584,11 @@ function renderDrilldownYears() {
         const listArea = document.getElementById('drilldownListArea');
         if (!listArea) return;
         
-        // Filter transactions for current user, excluding HANDOVER transactions
         const userTransactions = historyDB.filter(t => 
             t.collectorId === curUser.email && 
             t.type !== 'HANDOVER'
         );
         
-        // Group by year
         const years = {};
         userTransactions.forEach(t => {
             if (!t.date) return;
@@ -10849,7 +10605,6 @@ function renderDrilldownYears() {
             return;
         }
         
-        // Sort years descending
         const sortedYears = Object.keys(years).sort((a, b) => b - a);
         
         let html = '';
@@ -10864,10 +10619,8 @@ function renderDrilldownYears() {
         
         listArea.innerHTML = html;
         
-        // Update level
         drilldownCurrentLevel = 'years';
         
-        // Hide back button
         const backBtn = document.getElementById('drilldownBackBtn');
         if (backBtn) backBtn.classList.add('hidden');
         
@@ -10884,19 +10637,17 @@ function renderDrilldownMonths(year) {
         const listArea = document.getElementById('drilldownListArea');
         if (!listArea) return;
         
-        // Filter transactions for current user, year, excluding HANDOVER
         const userTransactions = historyDB.filter(t => 
             t.collectorId === curUser.email && 
             t.type !== 'HANDOVER' &&
             t.date && t.date.startsWith(year)
         );
         
-        // Group by month
         const months = {};
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         
         userTransactions.forEach(t => {
-            const month = parseInt(t.date.split('-')[1]) - 1; // 0-based month
+            const month = parseInt(t.date.split('-')[1]) - 1;
             if (!months[month]) {
                 months[month] = { total: 0, count: 0, name: monthNames[month] };
             }
@@ -10909,7 +10660,6 @@ function renderDrilldownMonths(year) {
             return;
         }
         
-        // Sort months descending
         const sortedMonths = Object.keys(months).sort((a, b) => b - a);
         
         let html = '';
@@ -10924,7 +10674,6 @@ function renderDrilldownMonths(year) {
         
         listArea.innerHTML = html;
         
-        // Show back button
         const backBtn = document.getElementById('drilldownBackBtn');
         if (backBtn) backBtn.classList.remove('hidden');
         
@@ -10941,17 +10690,14 @@ function renderDrilldownDays(year, month) {
         const listArea = document.getElementById('drilldownListArea');
         if (!listArea) return;
         
-        // Pad month to 2 digits
         const paddedMonth = month.toString().padStart(2, '0');
         
-        // Filter transactions for current user, year-month, excluding HANDOVER
         const userTransactions = historyDB.filter(t => 
             t.collectorId === curUser.email && 
             t.type !== 'HANDOVER' &&
             t.date && t.date.startsWith(`${year}-${paddedMonth}`)
         );
         
-        // Group by day
         const days = {};
         
         userTransactions.forEach(t => {
@@ -10969,7 +10715,6 @@ function renderDrilldownDays(year, month) {
             return;
         }
         
-        // Sort days descending
         const sortedDays = Object.keys(days).sort((a, b) => b - a);
         
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -10988,7 +10733,6 @@ function renderDrilldownDays(year, month) {
         
         listArea.innerHTML = html;
         
-        // Show back button
         const backBtn = document.getElementById('drilldownBackBtn');
         if (backBtn) backBtn.classList.remove('hidden');
         
@@ -11005,7 +10749,6 @@ function renderDrilldownTransactions(dateStr) {
         const listArea = document.getElementById('drilldownListArea');
         if (!listArea) return;
         
-        // Filter transactions for current user, exact date, excluding HANDOVER
         const dayTransactions = historyDB.filter(t => 
             t.collectorId === curUser.email && 
             t.type !== 'HANDOVER' &&
@@ -11017,14 +10760,12 @@ function renderDrilldownTransactions(dateStr) {
             return;
         }
         
-        // Format date for display
         const [year, month, day] = dateStr.split('-');
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         const displayDate = `${parseInt(day)} ${monthNames[parseInt(month) - 1]} ${year}`;
         
         let html = `<div style="padding:10px; text-align:center; font-weight:bold; border-bottom:1px solid var(--border);">${displayDate}</div>`;
         
-        // Sort by time (assuming ID contains timestamp or we can use time field if available)
         const sorted = [...dayTransactions].sort((a, b) => b.id - a.id);
         
         sorted.forEach(t => {
@@ -11042,7 +10783,6 @@ function renderDrilldownTransactions(dateStr) {
         
         listArea.innerHTML = html;
         
-        // Show back button
         const backBtn = document.getElementById('drilldownBackBtn');
         if (backBtn) backBtn.classList.remove('hidden');
         
@@ -11065,7 +10805,6 @@ function goBackDrilldown() {
     }
 }
 
-// ========== UPDATED REPORT FUNCTIONS WITH CLICKABLE NAME AND ICON ==========
 function openTotalDueReport() {
     try {
         let dueCustomers = db.filter(c => {
@@ -11135,14 +10874,12 @@ function openMyCollectionReport() {
         let reportHTML = '';
         
         myTransactions.forEach(t => {
-            // Online payment status indicator
             let onlineStatusHTML = '';
             if (t.onlineStatus && t.onlineStatus !== 'Success' && t.online > 0) {
                 let statusClass = t.onlineStatus === 'Pending' ? 'online-status-pending' : 'online-status-rejected';
                 onlineStatusHTML = `<span class="online-status-badge ${statusClass}">${t.onlineStatus}</span>`;
             }
             
-            // Handover status indicator
             let handoverStatusHTML = '';
             if (t.type === 'HANDOVER' && t.handoverStatus) {
                 let statusClass = '';
@@ -11234,14 +10971,12 @@ function openShopCollectionReport() {
         
         if (todayTransactions.length > 0) {
             todayTransactions.forEach(t => {
-                // Online payment status indicator
                 let onlineStatusHTML = '';
                 if (t.onlineStatus && t.onlineStatus !== 'Success' && t.online > 0) {
                     let statusClass = t.onlineStatus === 'Pending' ? 'online-status-pending' : 'online-status-rejected';
                     onlineStatusHTML = `<span class="online-status-badge ${statusClass}">${t.onlineStatus}</span>`;
                 }
                 
-                // Handover status indicator
                 let handoverStatusHTML = '';
                 if (t.type === 'HANDOVER' && t.handoverStatus) {
                     let statusClass = '';
@@ -11340,14 +11075,12 @@ function openTeamCollectionReport() {
         
         if (todayTransactions.length > 0) {
             todayTransactions.slice(-10).reverse().forEach(t => {
-                // Online payment status indicator
                 let onlineStatusHTML = '';
                 if (t.onlineStatus && t.onlineStatus !== 'Success' && t.online > 0) {
                     let statusClass = t.onlineStatus === 'Pending' ? 'online-status-pending' : 'online-status-rejected';
                     onlineStatusHTML = `<span class="online-status-badge ${statusClass}">${t.onlineStatus}</span>`;
                 }
                 
-                // Handover status indicator
                 let handoverStatusHTML = '';
                 if (t.type === 'HANDOVER' && t.handoverStatus) {
                     let statusClass = '';
@@ -11398,7 +11131,6 @@ function openTeamCollectionReport() {
     }
 }
 
-// ========== UPDATED openAdvancedFilter to show modal ==========
 function openAdvancedFilter() {
     try {
         if (!curUser || (curUser.role !== 'admin' && curUser.role !== 'manager')) {
@@ -11406,7 +11138,6 @@ function openAdvancedFilter() {
             return;
         }
         
-        // Show the modal instead of the hidden card
         const modal = document.getElementById('advancedFilterModal');
         if (modal) {
             modal.style.display = 'flex';
@@ -11416,7 +11147,6 @@ function openAdvancedFilter() {
     }
 }
 
-// ========== NEW closeAdvancedFilterModal() ==========
 function closeAdvancedFilterModal() {
     try {
         const modal = document.getElementById('advancedFilterModal');
@@ -11450,7 +11180,7 @@ function applyAdvancedFilter() {
         }
         
         alert(`Filter Applied:\nStaff: ${advancedFilterStaff}\nDate Range: ${advancedFilterStartDate} to ${advancedFilterEndDate}`);
-        closeAdvancedFilterModal(); // Close modal after applying
+        closeAdvancedFilterModal();
     } catch(e) {
         console.error("Apply advanced filter error:", e);
     }
@@ -11536,14 +11266,12 @@ function openFilteredReport() {
         });
         
         filteredTransactions.forEach(t => {
-            // Online payment status indicator
             let onlineStatusHTML = '';
             if (t.onlineStatus && t.onlineStatus !== 'Success' && t.online > 0) {
                 let statusClass = t.onlineStatus === 'Pending' ? 'online-status-pending' : 'online-status-rejected';
                 onlineStatusHTML = `<span class="online-status-badge ${statusClass}">${t.onlineStatus}</span>`;
             }
             
-            // Handover status indicator
             let handoverStatusHTML = '';
             if (t.type === 'HANDOVER' && t.handoverStatus) {
                 let statusClass = '';
@@ -11592,7 +11320,7 @@ function openFilteredReport() {
         if (reportList) reportList.innerHTML = reportHTML || '<div style="text-align:center; padding:20px; color:var(--text-light);">No transactions found for this filter</div>';
         if (reportModal) reportModal.style.display = 'flex';
         
-        closeAdvancedFilterModal(); // Close modal after viewing report
+        closeAdvancedFilterModal();
     } catch(e) {
         console.error("Open filtered report error:", e);
     }
@@ -11828,7 +11556,6 @@ function clearSelectedCustomer() {
     }
 }
 
-// ========== FIXED downloadReport FUNCTION FOR APK/WEBVIEW ==========
 function downloadReport(format) {
     try {
         const category = document.getElementById('reportCategory');
@@ -11904,7 +11631,6 @@ function downloadReport(format) {
     }
 }
 
-// ========== FIXED CSV DOWNLOAD FOR APK/WEBVIEW ==========
 function downloadCSVForAPK(data, filename) {
     try {
         if (data.length === 0) {
@@ -11954,16 +11680,13 @@ function downloadCSVForAPK(data, filename) {
         
         const csvString = csvRows.join('\n');
         
-        // Method 1: Create a data URI (works in most WebViews)
         const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         
         const timestamp = new Date().toISOString().slice(0, 19).replace(/[:]/g, '-');
         const fullFilename = `${filename}_${timestamp}.csv`;
         
-        // Try multiple download methods for maximum compatibility
         try {
-            // Method 1: Standard download via link
             const link = document.createElement('a');
             link.href = url;
             link.download = fullFilename;
@@ -11980,18 +11703,15 @@ function downloadCSVForAPK(data, filename) {
             console.error("Method 1 failed:", e1);
             
             try {
-                // Method 2: Use window.open for data URI
                 const dataUri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvString);
                 window.open(dataUri, '_blank');
                 alert(`✅ ${fullFilename} opened in new tab. Use Save As to download.`);
             } catch (e2) {
                 console.error("Method 2 failed:", e2);
                 
-                // Method 3: Fallback to copying to clipboard
                 navigator.clipboard.writeText(csvString).then(() => {
                     alert("✅ CSV data copied to clipboard! Paste into a text editor and save as .csv file.");
                 }).catch(() => {
-                    // Final fallback - show in textarea
                     const modal = document.getElementById('detailModal');
                     const mContent = document.getElementById('mContent');
                     if (modal && mContent) {
@@ -12013,7 +11733,6 @@ function downloadCSVForAPK(data, filename) {
     }
 }
 
-// ========== FIXED EXCEL DOWNLOAD FOR APK/WEBVIEW ==========
 function downloadExcelForAPK(data, filename) {
     try {
         if (data.length === 0) {
@@ -12063,18 +11782,15 @@ function downloadExcelForAPK(data, filename) {
         
         const csvString = csvRows.join('\n');
         
-        // For Excel, we'll create an HTML table that Excel can open
         let htmlTable = '<html><head><meta charset="UTF-8"><title>' + filename + '</title></head><body>';
         htmlTable += '<table border="1" cellpadding="5" cellspacing="0" style="border-collapse:collapse;">';
         
-        // Headers
         htmlTable += '<tr style="background:#4f46e5; color:white;">';
         headers.forEach(header => {
             htmlTable += '<th>' + escapeHtml(header) + '</th>';
         });
-        htmlTable += ';</tr>';
+        htmlTable += '</tr>';
         
-        // Data rows
         data.forEach(row => {
             htmlTable += '<tr>';
             headers.forEach(header => {
@@ -12095,7 +11811,6 @@ function downloadExcelForAPK(data, filename) {
         const timestamp = new Date().toISOString().slice(0, 19).replace(/[:]/g, '-');
         const fullFilename = `${filename}_${timestamp}.xls`;
         
-        // Try multiple download methods
         try {
             const link = document.createElement('a');
             link.href = url;
@@ -12119,7 +11834,6 @@ function downloadExcelForAPK(data, filename) {
             } catch (e2) {
                 console.error("Method 2 failed:", e2);
                 
-                // Show in modal
                 const modal = document.getElementById('detailModal');
                 const mContent = document.getElementById('mContent');
                 if (modal && mContent) {
@@ -12292,7 +12006,6 @@ function generateCustomerReport(type) {
     }
 }
 
-// ========== FIXED generatePrintPDFReport FUNCTION WITH PREVIEW MODAL ==========
 function generatePrintPDFReport(reportTitle, reportData, reportSubtitle) {
     try {
         if (reportData.length === 0) {
@@ -12363,7 +12076,7 @@ function generatePrintPDFReport(reportTitle, reportData, reportSubtitle) {
             headers.forEach(header => {
                 printHTML += `<th style="border: 1px solid #000; padding: 10px; text-align: left; font-weight: bold;">${escapeHtml(header)}</th>`;
             });
-            printHTML += '</tr></thead><tbody>';
+            printHTML += '?</thead><tbody>';
             
             reportData.forEach((row, rowIndex) => {
                 grandTotalCash += safeParseInt(row['Cash'] || row['Cash Collection'] || 0);
@@ -12416,48 +12129,47 @@ function generatePrintPDFReport(reportTitle, reportData, reportSubtitle) {
                         cellValue = escapeHtml(cellValue.toString()) || '-';
                     }
                     
-                    printHTML += `<td style="border: 1px solid #000; padding: 8px 10px;">${cellValue}</td>`;
+                    printHTML += `<td style="border: 1px solid #000; padding: 8px 10px;">${cellValue}胸`;
                 });
-                printHTML += '</tr>';
+                printHTML += '车';
             });
 
             printHTML += `<tfoot><tr style="background: #e0e7ff; font-weight: bold; border-top: 2px solid #000;">`;
             
             headers.forEach((header, index) => {
                 if (index === 0) {
-                    printHTML += `<td style="border: 1px solid #000; padding: 10px; color: #4f46e5;">GRAND TOTAL:</td>`;
+                    printHTML += `<td style="border: 1px solid #000; padding: 10px; color: #4f46e5;">GRAND TOTAL:胸`;
                 } else {
                     const headerLower = header.toLowerCase();
                     
                     if (headerLower.includes('cash')) {
-                        printHTML += `<td style="border: 1px solid #000; padding: 10px; color: #4f46e5; font-weight: 900;">₹${grandTotalCash.toLocaleString()}</td>`;
+                        printHTML += `<td style="border: 1px solid #000; padding: 10px; color: #4f46e5; font-weight: 900;">₹${grandTotalCash.toLocaleString()}胸`;
                     } 
                     else if (headerLower.includes('online')) {
-                        printHTML += `<td style="border: 1px solid #000; padding: 10px; color: #4f46e5; font-weight: 900;">₹${grandTotalOnline.toLocaleString()}</td>`;
+                        printHTML += `<td style="border: 1px solid #000; padding: 10px; color: #4f46e5; font-weight: 900;">₹${grandTotalOnline.toLocaleString()}胸`;
                     }
                     else if (headerLower.includes('paid') || headerLower.includes('collection')) {
-                        printHTML += `<td style="border: 1px solid #000; padding: 10px; color: #4f46e5; font-weight: 900;">₹${grandTotalPaid.toLocaleString()}</td>`;
+                        printHTML += `<td style="border: 1px solid #000; padding: 10px; color: #4f46e5; font-weight: 900;">₹${grandTotalPaid.toLocaleString()}胸`;
                     }
                     else if (headerLower.includes('bill') || headerLower.includes('total')) {
-                        printHTML += `<td style="border: 1px solid #000; padding: 10px; color: #4f46e5; font-weight: 900;">₹${grandTotalBill.toLocaleString()}</td>`;
+                        printHTML += `<td style="border: 1px solid #000; padding: 10px; color: #4f46e5; font-weight: 900;">₹${grandTotalBill.toLocaleString()}胸`;
                     }
                     else if (headerLower.includes('due')) {
-                        printHTML += `<td style="border: 1px solid #000; padding: 10px; color: #4f46e5; font-weight: 900;">₹${grandTotalDue.toLocaleString()}</td>`;
+                        printHTML += `<td style="border: 1px solid #000; padding: 10px; color: #4f46e5; font-weight: 900;">₹${grandTotalDue.toLocaleString()}胸`;
                     }
                     else {
-                        printHTML += `<td style="border: 1px solid #000; padding: 10px;">—</td>`;
+                        printHTML += `<td style="border: 1px solid #000; padding: 10px;">—胸`;
                     }
                 }
             });
             
-            printHTML += `</tr></tfoot>`;
+            printHTML += `?</tfoot>`;
             
-            printHTML += '</tbody></table>';
+            printHTML += '</tbody>?>';
         } else {
             printHTML += '<p style="text-align: center; padding: 20px; font-size: 14px;">No data available for this report.</p>';
         }
 
-        // Add print button at the bottom
         printHTML += `
                 <div style="text-align: center; margin-top: 30px;">
                     <button onclick="triggerActualPrint()" class="btn-action" style="background:var(--gradient-danger); color:white; border:none; padding:14px 20px; border-radius:12px; font-weight:800; font-size:16px; width:100%; max-width:300px; margin:0 auto; cursor:pointer; box-shadow:var(--shadow-lg);">
@@ -12472,7 +12184,6 @@ function generatePrintPDFReport(reportTitle, reportData, reportSubtitle) {
             </div>
         `;
 
-        // FIXED: Inject into #mContent inside #detailModal instead of directly printing
         const mContent = document.getElementById('mContent');
         const detailModal = document.getElementById('detailModal');
         
@@ -12480,7 +12191,6 @@ function generatePrintPDFReport(reportTitle, reportData, reportSubtitle) {
             mContent.innerHTML = printHTML;
             detailModal.style.display = 'flex';
         } else {
-            // Fallback if modal doesn't exist
             const printSection = document.getElementById('printSection');
             if (printSection) {
                 printSection.innerHTML = printHTML;
@@ -12498,7 +12208,6 @@ function generatePrintPDFReport(reportTitle, reportData, reportSubtitle) {
     }
 }
 
-// ========== NEW FUNCTION: triggerActualPrint ==========
 function triggerActualPrint() {
     try {
         const mContent = document.getElementById('mContent');
@@ -12507,23 +12216,19 @@ function triggerActualPrint() {
         
         if (!mContent || !printSection) return;
         
-        // Get the report content but remove the print button
         let reportContent = mContent.innerHTML;
         
-        // Remove the print button from the content to avoid duplication in print
         reportContent = reportContent.replace(/<button onclick="triggerActualPrint\(\)".*?<\/button>/, '');
         
         printSection.innerHTML = reportContent;
         printSection.style.display = 'block';
         
-        // Close the modal before printing
         if (detailModal) {
             detailModal.style.display = 'none';
         }
         
         window.print();
         
-        // Hide print section after printing
         setTimeout(() => {
             printSection.innerHTML = '';
             printSection.style.display = 'none';
@@ -12534,7 +12239,6 @@ function triggerActualPrint() {
     }
 }
 
-// ========== UPDATED SYNC DATA FUNCTION - FIX FOR SHOP NAME AND OWNER NAME UI UPDATE ==========
 async function syncData() { 
     if (window.isDemoMode) {
         alert("Sync is disabled in Demo Mode");
@@ -12591,7 +12295,6 @@ async function syncData() {
             
             if (data.customers) {
                 db = data.customers;
-                // Ensure all customers have assignedTo field
                 db.forEach(c => {
                     if (!c.hasOwnProperty('assignedTo')) {
                         c.assignedTo = "";
@@ -12600,12 +12303,10 @@ async function syncData() {
                 dataChanged = true;
             }
             
-            // FIX: Check if Shop Name from cloud is different from current global Shop Name
             if (data.shopName && data.shopName !== shopName) {
                 shopName = data.shopName;
                 localStorage.setItem('pub_hisab_shop_name', shopName);
                 
-                // Update the text element in the top header UI
                 const shopTitle = document.getElementById('shopTitle');
                 if (shopTitle) shopTitle.innerText = shopName;
                 
@@ -12613,7 +12314,6 @@ async function syncData() {
                 dataChanged = true;
             }
             
-            // FIX: Check if Owner Mobile and Email exist and update if needed
             if (data.ownerMobile && data.ownerMobile !== '' && data.ownerMobile !== ownerMobile) {
                 ownerMobile = data.ownerMobile;
                 localStorage.setItem('pub_hisab_owner_mobile', ownerMobile);
@@ -12625,14 +12325,11 @@ async function syncData() {
                 dataChanged = true;
             }
             
-            // FIX: Check if the currently logged-in user is an 'admin' and if Owner Name from cloud is different from current user's name
             if (curUser && curUser.role === 'admin' && data.ownerName && data.ownerName !== curUser.name) {
                 curUser.name = data.ownerName;
                 
-                // Update the current user's name object in localStorage
                 localStorage.setItem('pub_hisab_current_user', JSON.stringify(curUser));
                 
-                // Update the text element in the top header UI
                 const userNameDisplay = document.getElementById('userNameDisplay');
                 if (userNameDisplay) userNameDisplay.innerText = `- ${curUser.name}`;
                 
@@ -12640,7 +12337,6 @@ async function syncData() {
                 dataChanged = true;
             }
             
-            // Very Important: If any of these names change, call the existing profile settings update function
             if (shopNameChanged || ownerNameChanged) {
                 updateProfileSettings();
             }
@@ -12699,7 +12395,6 @@ async function syncData() {
     }
 }
 
-// ========== UPDATED autoSyncData FUNCTION - FIX FOR SHOP NAME AND OWNER NAME UI UPDATE ==========
 async function autoSyncData() {
     if (window.isDemoMode) {
         console.log("Auto-sync disabled in Demo Mode");
@@ -12743,7 +12438,6 @@ async function autoSyncData() {
         
         if (data.customers) {
             db = data.customers;
-            // Ensure all customers have assignedTo field
             db.forEach(c => {
                 if (!c.hasOwnProperty('assignedTo')) {
                     c.assignedTo = "";
@@ -12752,12 +12446,10 @@ async function autoSyncData() {
             dataChanged = true;
         }
         
-        // FIX: Check if Shop Name from cloud is different from current global Shop Name
         if (data.shopName && data.shopName !== shopName) {
             shopName = data.shopName;
             localStorage.setItem('pub_hisab_shop_name', shopName);
             
-            // Update the text element in the top header UI
             const shopTitle = document.getElementById('shopTitle');
             if (shopTitle) shopTitle.innerText = shopName;
             
@@ -12765,7 +12457,6 @@ async function autoSyncData() {
             dataChanged = true;
         }
         
-        // FIX: Only save ownerMobile and ownerEmail if they exist and are not empty/undefined
         if (data.ownerMobile && data.ownerMobile !== '' && data.ownerMobile !== ownerMobile) {
             ownerMobile = data.ownerMobile;
             localStorage.setItem('pub_hisab_owner_mobile', ownerMobile);
@@ -12777,14 +12468,11 @@ async function autoSyncData() {
             dataChanged = true;
         }
         
-        // FIX: Check if the currently logged-in user is an 'admin' and if Owner Name from cloud is different from current user's name
         if (curUser && curUser.role === 'admin' && data.ownerName && data.ownerName !== curUser.name) {
             curUser.name = data.ownerName;
             
-            // Update the current user's name object in localStorage
             localStorage.setItem('pub_hisab_current_user', JSON.stringify(curUser));
             
-            // Update the text element in the top header UI
             const userNameDisplay = document.getElementById('userNameDisplay');
             if (userNameDisplay) userNameDisplay.innerText = `- ${curUser.name}`;
             
@@ -12792,7 +12480,6 @@ async function autoSyncData() {
             dataChanged = true;
         }
         
-        // Very Important: If any of these names change, call the existing profile settings update function
         if (shopNameChanged || ownerNameChanged) {
             updateProfileSettings();
         }
@@ -12889,7 +12576,6 @@ async function doLogin() {
                 cloudUrl = url;
                 shopName = result.shop || 'PUBLIC HISAB';
                 
-                // FIXED: Only save owner mobile and email if they exist and are not empty/undefined
                 if (result.mobile && result.mobile !== '') {
                     ownerMobile = result.mobile;
                     localStorage.setItem('pub_hisab_owner_mobile', ownerMobile);
@@ -12998,7 +12684,6 @@ async function doRegister() {
                 shopName = sVal;
                 savedPin = pinVal;
                 
-                // FIXED: Only save owner mobile and email if they exist and are not empty/undefined
                 if (mVal && mVal !== '') {
                     ownerMobile = mVal;
                     localStorage.setItem('pub_hisab_owner_mobile', mVal);
@@ -13060,7 +12745,6 @@ function logout() {
     }
 }
 
-// ========== INITIALIZE MAIN APP FUNCTION ==========
 function initializeMainApp() {
     try {
         shopName = localStorage.getItem('pub_hisab_shop_name') || 'PUBLIC HISAB';
@@ -13135,30 +12819,23 @@ function updateProfileSettings() {
     }
 }
 
-// ========== UPDATED CALL OWNER FUNCTION WITH IMPROVED FALLBACK LOGIC ==========
 function callOwner() {
     try {
-        // Check global variable first
         let mobileToCall = ownerMobile;
         
-        // If global variable is invalid, check localStorage
         if (!mobileToCall || mobileToCall === '' || mobileToCall === 'undefined' || mobileToCall === 'null') {
             mobileToCall = localStorage.getItem('pub_hisab_owner_mobile');
         }
         
-        // If mobileToCall exists, clean it (remove spaces and non-numeric characters)
         if (mobileToCall && mobileToCall !== '' && mobileToCall !== 'undefined' && mobileToCall !== 'null') {
-            // Strip any spaces or non-numeric characters
             const cleanedNumber = mobileToCall.toString().replace(/[^\d]/g, '');
             
-            // Check if valid (at least 10 digits)
             if (cleanedNumber && cleanedNumber.length >= 10) {
                 window.location.href = "tel:" + cleanedNumber;
                 return;
             }
         }
         
-        // If all checks fail, show alert
         alert("Owner mobile number not available!");
     } catch(e) {
         console.error("Call owner error:", e);
@@ -13256,7 +12933,7 @@ function renderStaffListTable(staffList) {
         let tableHTML = `
             <table class="staff-list-table">
                 <thead>
-                      ...
+                     <tr>
         `;
         
         if (curUser.role === 'admin') {
@@ -13280,7 +12957,7 @@ function renderStaffListTable(staffList) {
         }
         
         tableHTML += `
-                      ...
+                     </tr>
                 </thead>
                 <tbody>
         `;
@@ -13292,8 +12969,6 @@ function renderStaffListTable(staffList) {
             const statusText = isBlocked ? 'Blocked' : 'Active';
             const statusClass = isBlocked ? 'staff-blocked' : 'staff-active-status';
             
-            tableHTML += `...`;
-            
             if (curUser.role === 'admin') {
                 let mobileLink = staff.mobile ? 
                     `<a href="tel:${staff.mobile}" class="mobile-link">
@@ -13302,21 +12977,23 @@ function renderStaffListTable(staffList) {
                     '<span style="color:var(--text-light);">-</span>';
                 
                 tableHTML += `
-                    <td><span class="user-icon"><i class="fa-solid fa-user"></i></span> ${escapeHtml(staff.name || '-')}胸
-                    <td>${mobileLink}胸
-                    <td>${escapeHtml(staff.email || '-')}胸
-                    <td>${roleDisplay}胸
-                    <td class="password-cell">
-                        <span id="password-${index}" class="password-text">******</span>
-                        <i class="fa-solid fa-eye eye-icon" onclick="togglePasswordVisibility(${index}, '${escapeHtml(staff.password)}')"></i>
-                      胸
-                    <td><span class="${statusClass}">${statusText}</span>胸
-                    <td>
-                        <label class="staff-toggle-switch">
-                            <input type="checkbox" ${!isBlocked ? 'checked' : ''} onchange="toggleStaffBlock('${staff.email}', this.checked)">
-                            <span class="staff-toggle-slider"></span>
-                        </label>
-                      胸
+                     <tr>
+                        <td><span class="user-icon"><i class="fa-solid fa-user"></i></span> ${escapeHtml(staff.name || '-')}</td>
+                        <td>${mobileLink}</td>
+                        <td>${escapeHtml(staff.email || '-')}</td>
+                        <td>${roleDisplay}</td>
+                        <td class="password-cell">
+                            <span id="password-${index}" class="password-text">******</span>
+                            <i class="fa-solid fa-eye eye-icon" onclick="togglePasswordVisibility(${index}, '${escapeHtml(staff.password)}')"></i>
+                        </td>
+                        <td><span class="${statusClass}">${statusText}</span></td>
+                        <td>
+                            <label class="staff-toggle-switch">
+                                <input type="checkbox" ${!isBlocked ? 'checked' : ''} onchange="toggleStaffBlock('${staff.email}', this.checked)">
+                                <span class="staff-toggle-slider"></span>
+                            </label>
+                        </td>
+                     </tr>
                 `;
             } else {
                 let mobileLink = staff.mobile ? 
@@ -13326,20 +13003,20 @@ function renderStaffListTable(staffList) {
                     '<span style="color:var(--text-light);">-</span>';
                 
                 tableHTML += `
-                    <td><span class="user-icon"><i class="fa-solid fa-user"></i></span> ${escapeHtml(staff.name || '-')}胸
-                    <td>${roleDisplay}胸
-                    <td>${mobileLink}胸
-                    <td>${escapeHtml(staff.email || '-')}胸
-                    <td><span class="${statusClass}">${statusText}</span>胸
+                     <tr>
+                        <td><span class="user-icon"><i class="fa-solid fa-user"></i></span> ${escapeHtml(staff.name || '-')}</td>
+                        <td>${roleDisplay}</td>
+                        <td>${mobileLink}</td>
+                        <td>${escapeHtml(staff.email || '-')}</td>
+                        <td><span class="${statusClass}">${statusText}</span></td>
+                     </tr>
                 `;
             }
-            
-            tableHTML += `...`;
         });
         
         tableHTML += `
                 </tbody>
-             ...
+            </table>
         `;
         
         staffListTable.innerHTML = tableHTML;
@@ -13368,7 +13045,6 @@ function togglePasswordVisibility(index, realPassword) {
     }
 }
 
-// ========== REQUIREMENT 2: FIXED toggleStaffBlock FUNCTION WITH CORRECT BLOCK PARAMETER ==========
 async function toggleStaffBlock(email, isActive) {
     try {
         if (!confirm(`Are you sure you want to ${isActive ? 'unblock' : 'block'} this staff member?`)) {
@@ -13377,9 +13053,6 @@ async function toggleStaffBlock(email, isActive) {
         }
         
         try {
-            // FIXED: Correctly send block parameter
-            // If switch is checked (isActive=true), user should be UNBLOCKED (block=false)
-            // If switch is unchecked (isActive=false), user should be BLOCKED (block=true)
             const response = await fetch(cloudUrl + "?action=toggleStaffBlock&email=" + curUser.email + "&password=" + curUser.password + "&targetId=" + email + "&block=" + (!isActive));
             
             if (!response.ok) {
@@ -13391,7 +13064,6 @@ async function toggleStaffBlock(email, isActive) {
             if (result.success) {
                 alert(`Staff ${!isActive ? 'blocked' : 'unblocked'} successfully!`);
                 
-                // Immediately reload staff list to reflect new state
                 await loadStaffList();
                 
                 if (curUser.role === 'manager') {
@@ -13518,7 +13190,7 @@ async function loadManagerStaffList() {
             
             if (filteredStaff.length === 0) {
                 managerStaffList.innerHTML = `
-                    <tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-light);">No staff members found</td>
+                     <tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-light);">No staff members found</td></tr>
                 `;
                 return;
             }
@@ -13532,18 +13204,18 @@ async function loadManagerStaffList() {
                 
                 html += `
                      <tr>
-                         <td><span class="user-icon"><i class="fa-solid fa-user"></i></span> ${escapeHtml(staff.name || '-')}</td>
-                         <td>${roleDisplay}</td>
-                         <td>
+                        <td><span class="user-icon"><i class="fa-solid fa-user"></i></span> ${escapeHtml(staff.name || '-')}</td>
+                        <td>${roleDisplay}</td>
+                        <td>
                             ${staff.mobile ? 
                                 `<a href="tel:${staff.mobile}" class="mobile-link">
                                     <i class="fa-solid fa-phone"></i> ${staff.mobile}
                                 </a>` : 
                                 '<span style="color:var(--text-light);">-</span>'
                             }
-                         </td>
-                         <td>${escapeHtml(staff.email || '-')}</td>
-                         <td><span class="${statusClass}">${statusText}</span></td>
+                        </td>
+                        <td>${escapeHtml(staff.email || '-')}</td>
+                        <td><span class="${statusClass}">${statusText}</span></td>
                      </tr>
                 `;
             });
@@ -13576,7 +13248,6 @@ function saveLocal() {
     }
 }
 
-// ========== OPEN RECEIPT FUNCTION - COMPACT REDESIGN WITH COLOR CODING ==========
 function openReceipt(id) {
     try {
         let t = historyDB.find(x => x.id == id); 
@@ -13656,14 +13327,12 @@ function openReceipt(id) {
             statusText = 'FULLY PAID';
         }
         
-        // Online payment status indicator
         let onlineStatusHTML = '';
         if (t.onlineStatus && t.onlineStatus !== 'Success' && t.online > 0) {
             let statusClass = t.onlineStatus === 'Pending' ? 'online-status-pending' : 'online-status-rejected';
             onlineStatusHTML = `<div><span class="online-status-badge ${statusClass}" style="display:inline-block; margin-right:5px;">${t.onlineStatus}</span></div>`;
         }
         
-        // Handover status indicator
         let handoverStatusHTML = '';
         if (t.type === 'HANDOVER' && t.handoverStatus) {
             let statusClass = '';
@@ -13860,7 +13529,6 @@ function shareReceiptOnWhatsApp(receiptId) {
     }
 }
 
-// ========== TASK 1: openChangeNumberModal FUNCTION ==========
 function openChangeNumberModal(mobile) {
     try {
         const c = db.find(x => x.mobile && x.mobile.toString() === mobile.toString());
@@ -13889,7 +13557,6 @@ function openChangeNumberModal(mobile) {
     }
 }
 
-// ========== TASK 2: updateCustomerNumber FUNCTION ==========
 async function updateCustomerNumber() {
     try {
         const changeMobileOld = document.getElementById('changeMobileOld');
@@ -13918,7 +13585,6 @@ async function updateCustomerNumber() {
             return;
         }
         
-        // Check if new mobile already exists for a DIFFERENT customer
         let existing = db.find(x => x.mobile && x.mobile.toString() === newMobile.toString() && x.mobile.toString() !== oldMobile.toString());
         if (existing) {
             alert("This mobile number already exists for another customer!");
@@ -13928,7 +13594,6 @@ async function updateCustomerNumber() {
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner"></span> Updating...';
         
-        // Find index of customer with old mobile
         let idx = db.findIndex(x => x.mobile && x.mobile.toString() === oldMobile.toString());
         if (idx === -1) {
             alert("Customer not found!");
@@ -13937,31 +13602,25 @@ async function updateCustomerNumber() {
             return;
         }
         
-        // Store old mobile for history
         const oldMobileForHistory = db[idx].mobile;
         
-        // IMPORTANT: DO NOT mutate the mobile field of old transactions in historyDB
-        // Instead, add previous mobile to customer's previousMobiles array
         if (!db[idx].previousMobiles) {
             db[idx].previousMobiles = [];
         }
         
-        // Only add to previousMobiles if not already there
         if (!db[idx].previousMobiles.includes(oldMobile)) {
             db[idx].previousMobiles.push(oldMobile);
         }
         
-        // Update the existing customer object directly - DO NOT create new customer
         db[idx].mobile = newMobile;
         if (newSTB) db[idx].stb = newSTB;
         
-        // Create transaction record for change number
         let tx = {
             id: Date.now(),
             type: 'CHANGE_NUMBER',
             name: db[idx].name,
-            mobile: newMobile, // Store new mobile as primary
-            oldMobile: oldMobile, // Store old mobile for reference
+            mobile: newMobile,
+            oldMobile: oldMobile,
             email: db[idx].email || '',
             stb: db[idx].stb || '',
             addr: db[idx].addr || '',
@@ -13982,10 +13641,8 @@ async function updateCustomerNumber() {
             shop: shopName
         };
         
-        // Save to cloud if connected
         if (cloudUrl && !window.isDemoMode) {
             try {
-                // Send the updated customer object
                 await fetchWithRetry(cloudUrl + "?action=saveCustomer&email=" + curUser.email + "&password=" + curUser.password, {
                     method: 'POST',
                     body: JSON.stringify(db[idx])
@@ -14001,10 +13658,8 @@ async function updateCustomerNumber() {
             }
         }
         
-        // Add transaction to history
         historyDB.push(tx);
         
-        // Save local state
         saveLocal();
         refreshUI();
         
@@ -14021,10 +13676,6 @@ async function updateCustomerNumber() {
     }
 }
 
-// ========== TASK 3: FIX openFullProfile History Filtering (already updated above) ==========
-// The openFullProfile function has already been updated with the proper history filtering logic above
-
-// ========== SAVE CORRECTION FUNCTION - NO DUPLICATE ==========
 async function saveCorrection() {
     try {
         const correctionMobile = document.getElementById('correctionMobile');
@@ -14060,7 +13711,6 @@ async function saveCorrection() {
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner"></span> Saving...';
         
-        // Find index of customer with this mobile
         let idx = db.findIndex(x => x.mobile && x.mobile.toString() === mobile.toString());
         if (idx === -1) {
             alert("Customer not found!");
@@ -14069,10 +13719,8 @@ async function saveCorrection() {
             return;
         }
         
-        // Save old data for transaction record
         let oldData = { ...db[idx] };
         
-        // Create transaction record
         let tx = {
             id: Date.now(),
             type: 'CUSTOMER_CORRECTION',
@@ -14099,13 +13747,11 @@ async function saveCorrection() {
             oldData: oldData
         };
         
-        // UPDATE the existing customer object (NOT push new one)
         db[idx].name = name;
         if (stb) db[idx].stb = stb;
         if (address) db[idx].addr = address;
         if (location) db[idx].loc = location;
         
-        // Save to cloud if connected
         if (cloudUrl && !window.isDemoMode) {
             try {
                 await fetchWithRetry(cloudUrl + "?action=saveCustomer&email=" + curUser.email + "&password=" + curUser.password, {
@@ -14123,10 +13769,8 @@ async function saveCorrection() {
             }
         }
         
-        // Add transaction to history
         historyDB.push(tx);
         
-        // Save local state
         saveLocal();
         refreshUI();
         
@@ -14661,121 +14305,22 @@ function escapeHtml(text) {
 
 let profilePasswordVisible = false;
 
-// ========== NEW: Cash Handover Modal Functions ==========
-
-/**
- * Calculate user's cash liability
- * Updated to account for incoming money from other staff members
- */
-function calculateLiability() {
-    try {
-        if (!curUser || !historyDB) return 0;
-        
-        // 1. Own Direct Collections
-        // Sum all cash + online collected by this user, but only include online if paid to self
-        const ownCollections = historyDB
-            .filter(t => t.collectorId === curUser.email && t.type !== 'HANDOVER')
-            .reduce((sum, t) => {
-                // Always add cash
-                let amount = safeParseInt(t.cash);
-                
-                // Only add online if it was paid to self (or no onlineTo field)
-                if (safeParseInt(t.online) > 0) {
-                    if (!t.onlineTo || t.onlineTo === 'self' || t.onlineTo === curUser.email) {
-                        amount += safeParseInt(t.online);
-                    }
-                }
-                
-                return sum + amount;
-            }, 0);
-        
-        // 2. Received from Other Staff (Cash Handovers)
-        const receivedCashHandovers = historyDB
-            .filter(t => t.type === 'HANDOVER' && t.handoverTo === curUser.email && t.handoverStatus === 'Success')
-            .reduce((sum, t) => sum + safeParseInt(t.paid), 0);
-        
-        // 3. Received from Other Staff (Online Routed)
-        const receivedOnlineRouted = historyDB
-            .filter(t => t.type !== 'HANDOVER' && t.onlineTo === curUser.email && t.collectorId !== curUser.email && t.onlineStatus === 'Success')
-            .reduce((sum, t) => sum + safeParseInt(t.online), 0);
-        
-        // 4. Given to Others (Handovers)
-        const givenToOthers = historyDB
-            .filter(t => t.type === 'HANDOVER' && t.collectorId === curUser.email && t.handoverStatus !== 'Rejected')
-            .reduce((sum, t) => sum + safeParseInt(t.paid), 0);
-        
-        // Liability = Own Collections + Received Cash + Received Online - Given to Others
-        return ownCollections + receivedCashHandovers + receivedOnlineRouted - givenToOthers;
-    } catch(e) {
-        console.error("Calculate liability error:", e);
-        return 0;
-    }
-}
-
-/**
- * Populate handover dropdown based on user role
- */
-function populateHandoverDropdown() {
-    try {
-        const dropdown = document.getElementById('hoToUserDropdown');
-        if (!dropdown || !curUser) return;
-        
-        let options = '<option value="">Select Handover To</option>';
-        
-        // Get staff list from localStorage
-        let staffList = [];
-        try {
-            staffList = JSON.parse(localStorage.getItem('pub_hisab_staff_list')) || [];
-        } catch(e) {
-            console.log("Error reading staff list:", e);
-        }
-
-        if (curUser.role === 'staff') {
-            // For staff: Show Owner and Managers
-            // Add Owner (using global ownerEmail or 'admin')
-            options += '<option value="' + (ownerEmail || 'admin') + '">Owner / Admin</option>';
-            
-            // Add Managers from staffList
-            staffList.filter(s => s.role === 'manager').forEach(m => {
-                options += `<option value="${m.email}">${m.name} (Manager)</option>`;
-            });
-            
-        } else if (curUser.role === 'manager') {
-            // For manager: Show Owner only
-            options += '<option value="' + (ownerEmail || 'admin') + '">Owner / Admin</option>';
-        }
-        
-        dropdown.innerHTML = options;
-        
-    } catch(e) {
-        console.error("Populate handover dropdown error:", e);
-    }
-}
-
-/**
- * Open Handover Modal
- */
 function openHandoverModal() {
     try {
-        // Calculate liability
         const liability = calculateLiability();
         
-        // Check if liability is valid
         if (liability <= 0) {
             alert("You have no pending cash to handover!");
             return;
         }
         
-        // Update liability amount in UI
         const liabilityElement = document.getElementById('hoLiabilityAmount');
         if (liabilityElement) {
             liabilityElement.innerText = '₹' + liability.toLocaleString();
         }
         
-        // Populate dropdown based on role
         populateHandoverDropdown();
         
-        // Clear input fields
         const cashInput = document.getElementById('hoCashInput');
         const onlineInput = document.getElementById('hoOnlineInput');
         const remarkInput = document.getElementById('hoRemarkInput');
@@ -14784,14 +14329,12 @@ function openHandoverModal() {
         if (onlineInput) onlineInput.value = '';
         if (remarkInput) remarkInput.value = '';
         
-        // Reset button state
         const submitBtn = document.getElementById('btnSubmitHandover');
         if (submitBtn) {
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<i class="fa-solid fa-hand-holding-dollar"></i> Submit Handover';
         }
         
-        // Show modal
         const handoverModal = document.getElementById('handoverModal');
         if (handoverModal) {
             handoverModal.style.display = 'flex';
@@ -14803,9 +14346,6 @@ function openHandoverModal() {
     }
 }
 
-/**
- * Close Handover Modal
- */
 function closeHandoverModal() {
     try {
         const handoverModal = document.getElementById('handoverModal');
@@ -14817,12 +14357,40 @@ function closeHandoverModal() {
     }
 }
 
-/**
- * Submit Handover
- */
+function populateHandoverDropdown() {
+    try {
+        const dropdown = document.getElementById('hoToUserDropdown');
+        if (!dropdown || !curUser) return;
+        
+        let options = '<option value="">Select Handover To</option>';
+        
+        let staffList = [];
+        try {
+            staffList = JSON.parse(localStorage.getItem('pub_hisab_staff_list')) || [];
+        } catch(e) {
+            console.log("Error reading staff list:", e);
+        }
+
+        if (curUser.role === 'staff') {
+            options += '<option value="' + (ownerEmail || 'admin') + '">Owner / Admin</option>';
+            
+            staffList.filter(s => s.role === 'manager').forEach(m => {
+                options += `<option value="${m.email}">${m.name} (Manager)</option>`;
+            });
+            
+        } else if (curUser.role === 'manager') {
+            options += '<option value="' + (ownerEmail || 'admin') + '">Owner / Admin</option>';
+        }
+        
+        dropdown.innerHTML = options;
+        
+    } catch(e) {
+        console.error("Populate handover dropdown error:", e);
+    }
+}
+
 async function submitHandover() {
     try {
-        // Get input elements
         const cashInput = document.getElementById('hoCashInput');
         const onlineInput = document.getElementById('hoOnlineInput');
         const dropdown = document.getElementById('hoToUserDropdown');
@@ -14831,21 +14399,17 @@ async function submitHandover() {
         
         if (!cashInput || !onlineInput || !dropdown || !remarkInput || !submitBtn) return;
         
-        // Get values
         const cashValue = safeParseInt(cashInput.value);
         const onlineValue = safeParseInt(onlineInput.value);
         const paid = cashValue + onlineValue;
         const hoToUserValue = dropdown.value;
         const remarkValue = remarkInput.value.trim();
         
-        // Get selected option text for name
         const selectedOption = dropdown.options[dropdown.selectedIndex];
         const handoverToName = selectedOption ? selectedOption.text : hoToUserValue;
         
-        // Calculate current liability for validation
         const liability = calculateLiability();
         
-        // Validate inputs
         if (paid <= 0) {
             alert("❌ Please enter an amount greater than 0!");
             cashInput.classList.add('error-field');
@@ -14882,14 +14446,11 @@ async function submitHandover() {
             return;
         }
         
-        // Disable button and show processing
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<span class="spinner"></span> Processing...';
         
-        // Get customer info (use first customer or generic name)
         const customerInfo = db[0] || { name: 'Cash Handover', stb: '' };
         
-        // Create transaction object exactly matching existing structure
         let tx = {
             id: Date.now(),
             type: 'HANDOVER',
@@ -14917,7 +14478,6 @@ async function submitHandover() {
             handoverStatus: 'Pending'
         };
         
-        // Make API call using fetchWithRetry
         if (cloudUrl && !window.isDemoMode) {
             try {
                 const response = await fetchWithRetry(cloudUrl + "?action=saveTransaction&email=" + curUser.email + "&password=" + curUser.password, {
@@ -14934,23 +14494,16 @@ async function submitHandover() {
             }
         }
         
-        // Add to local historyDB
         historyDB.push(tx);
         
-        // Save local state
         saveLocal();
-        
-        // Update UI
         refreshUI();
         updateDashboardBoxes();
         
-        // Success message
         alert("✅ Handover submitted successfully! Waiting for approval.");
         
-        // Close modal
         closeHandoverModal();
         
-        // Reset button state
         submitBtn.disabled = false;
         submitBtn.innerHTML = '<i class="fa-solid fa-hand-holding-dollar"></i> Submit Handover';
         
@@ -14958,7 +14511,6 @@ async function submitHandover() {
         console.error("Submit handover error:", e);
         alert("Error submitting handover. Please try again.");
         
-        // Reset button state
         const submitBtn = document.getElementById('btnSubmitHandover');
         if (submitBtn) {
             submitBtn.disabled = false;
