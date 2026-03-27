@@ -293,6 +293,35 @@
             border: 1px solid var(--border);
         }
 
+        /* Spinner animation */
+        .spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .btn-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.6s linear infinite;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
         /* Online payment section styles */
         .online-details-section {
             margin: 12px 0;
@@ -1966,7 +1995,7 @@
         
         @keyframes spin {
             0% { transform: rotate(0deg); }
-            360% { transform: rotate(360deg); }
+            100% { transform: rotate(360deg); }
         }
         
         .delete-btn {
@@ -4335,18 +4364,18 @@
                         <div id="managerStaffListScrollContainer" class="staff-list-scroll-container" style="max-height: 300px; overflow-y: auto;">
                             <table class="staff-list-table" id="managerStaffTable">
                                 <thead>
-                                    <tr>
+                                      ...
                                         <th data-i18n="name">Name</th>
                                         <th data-i18n="role">Role</th>
                                         <th data-i18n="mobile">Mobile</th>
                                         <th data-i18n="email">Email</th>
                                         <th data-i18n="status">Status</th>
-                                    </tr>
+                                      ...
                                 </thead>
                                 <tbody id="managerStaffList">
-                                    <tr><td colspan="5" style="text-align:center; padding:20px;">Loading staff list...</td></tr>
+                                    禅<td colspan="5" style="text-align:center; padding:20px;">Loading staff list...禅</td>
                                 </tbody>
-                            </table>
+                             </table>
                         </div>
                     </div>
                 </div>
@@ -9065,7 +9094,7 @@ async function assignStaffToCustomer() {
     
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Assigning...';
+        btn.innerHTML = '<span class="spinner"></span> Assigning...';
     }
     
     try {
@@ -9218,7 +9247,7 @@ async function revokeStaffAccess() {
     
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Revoking...';
+        btn.innerHTML = '<span class="spinner"></span> Revoking...';
     }
     
     try {
@@ -11789,10 +11818,10 @@ function downloadExcelForAPK(data, filename) {
         headers.forEach(header => {
             htmlTable += '<th>' + escapeHtml(header) + '</th>';
         });
-        htmlTable += '</tr>';
+        htmlTable += ' </tr>';
         
         data.forEach(row => {
-            htmlTable += '<tr>';
+            htmlTable += ' <tr>';
             headers.forEach(header => {
                 let value = row[header] || '';
                 if (typeof value === 'number' && !isNaN(value)) {
@@ -11800,7 +11829,7 @@ function downloadExcelForAPK(data, filename) {
                 }
                 htmlTable += '<td>' + escapeHtml(String(value)) + '</td>';
             });
-            htmlTable += '</tr>';
+            htmlTable += ' </tr>';
         });
         
         htmlTable += '</table></body></html>';
@@ -12076,7 +12105,7 @@ function generatePrintPDFReport(reportTitle, reportData, reportSubtitle) {
             headers.forEach(header => {
                 printHTML += `<th style="border: 1px solid #000; padding: 10px; text-align: left; font-weight: bold;">${escapeHtml(header)}</th>`;
             });
-            printHTML += '?</thead><tbody>';
+            printHTML += ' </thead><tbody>';
             
             reportData.forEach((row, rowIndex) => {
                 grandTotalCash += safeParseInt(row['Cash'] || row['Cash Collection'] || 0);
@@ -12131,7 +12160,7 @@ function generatePrintPDFReport(reportTitle, reportData, reportSubtitle) {
                     
                     printHTML += `<td style="border: 1px solid #000; padding: 8px 10px;">${cellValue}胸`;
                 });
-                printHTML += '车';
+                printHTML += '  crow';
             });
 
             printHTML += `<tfoot><tr style="background: #e0e7ff; font-weight: bold; border-top: 2px solid #000;">`;
@@ -12163,9 +12192,9 @@ function generatePrintPDFReport(reportTitle, reportData, reportSubtitle) {
                 }
             });
             
-            printHTML += `?</tfoot>`;
+            printHTML += `  </tfoot>`;
             
-            printHTML += '</tbody>?>';
+            printHTML += '</tbody>  </table>';
         } else {
             printHTML += '<p style="text-align: center; padding: 20px; font-size: 14px;">No data available for this report.</p>';
         }
@@ -12255,11 +12284,11 @@ async function syncData() {
         
         if (dashboardBtn) {
             dashboardBtn.disabled = true;
-            dashboardBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Syncing...`;
+            dashboardBtn.innerHTML = '<span class="spinner"></span> Syncing...';
         }
         if (settingsBtn) {
             settingsBtn.disabled = true;
-            settingsBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Syncing...`;
+            settingsBtn.innerHTML = '<span class="spinner"></span> Syncing...';
         }
         
         try { 
@@ -12649,7 +12678,7 @@ async function doRegister() {
         if (!pinVal || pinVal.length !== 4 || !/^\d+$/.test(pinVal)) return alert("Enter 4-digit PIN!");
         
         btn.disabled = true;
-        btn.innerText = "Processing...";
+        btn.innerHTML = '<span class="spinner"></span> Processing...';
         
         try {
             let ownerData = {
@@ -12933,7 +12962,7 @@ function renderStaffListTable(staffList) {
         let tableHTML = `
             <table class="staff-list-table">
                 <thead>
-                     <tr>
+                     ...
         `;
         
         if (curUser.role === 'admin') {
@@ -12957,7 +12986,7 @@ function renderStaffListTable(staffList) {
         }
         
         tableHTML += `
-                     </tr>
+                     ...
                 </thead>
                 <tbody>
         `;
@@ -12977,7 +13006,7 @@ function renderStaffListTable(staffList) {
                     '<span style="color:var(--text-light);">-</span>';
                 
                 tableHTML += `
-                     <tr>
+                      <tr>
                         <td><span class="user-icon"><i class="fa-solid fa-user"></i></span> ${escapeHtml(staff.name || '-')}</td>
                         <td>${mobileLink}</td>
                         <td>${escapeHtml(staff.email || '-')}</td>
@@ -12993,7 +13022,7 @@ function renderStaffListTable(staffList) {
                                 <span class="staff-toggle-slider"></span>
                             </label>
                         </td>
-                     </tr>
+                      </tr>
                 `;
             } else {
                 let mobileLink = staff.mobile ? 
@@ -13003,20 +13032,20 @@ function renderStaffListTable(staffList) {
                     '<span style="color:var(--text-light);">-</span>';
                 
                 tableHTML += `
-                     <tr>
+                      <tr>
                         <td><span class="user-icon"><i class="fa-solid fa-user"></i></span> ${escapeHtml(staff.name || '-')}</td>
                         <td>${roleDisplay}</td>
                         <td>${mobileLink}</td>
                         <td>${escapeHtml(staff.email || '-')}</td>
                         <td><span class="${statusClass}">${statusText}</span></td>
-                     </tr>
+                      </tr>
                 `;
             }
         });
         
         tableHTML += `
                 </tbody>
-            </table>
+             </table>
         `;
         
         staffListTable.innerHTML = tableHTML;
@@ -13115,7 +13144,7 @@ async function addStaff() {
         if (mVal && mVal.length !== 10) return alert("Mobile must be 10 digits!");
         
         btn.disabled = true;
-        btn.innerText = "Adding...";
+        btn.innerHTML = '<span class="spinner"></span> Adding...';
         
         try {
             let staffData = {
@@ -13190,7 +13219,7 @@ async function loadManagerStaffList() {
             
             if (filteredStaff.length === 0) {
                 managerStaffList.innerHTML = `
-                     <tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-light);">No staff members found</td></tr>
+                    <tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-light);">No staff members found</td></tr>
                 `;
                 return;
             }
@@ -13203,7 +13232,7 @@ async function loadManagerStaffList() {
                 const statusClass = isBlocked ? 'staff-blocked' : 'staff-active-status';
                 
                 html += `
-                     <tr>
+                    <tr>
                         <td><span class="user-icon"><i class="fa-solid fa-user"></i></span> ${escapeHtml(staff.name || '-')}</td>
                         <td>${roleDisplay}</td>
                         <td>
@@ -13216,7 +13245,7 @@ async function loadManagerStaffList() {
                         </td>
                         <td>${escapeHtml(staff.email || '-')}</td>
                         <td><span class="${statusClass}">${statusText}</span></td>
-                     </tr>
+                    </tr>
                 `;
             });
             
@@ -13225,7 +13254,7 @@ async function loadManagerStaffList() {
         } catch (error) {
             console.error("Error loading manager staff list:", error);
             managerStaffList.innerHTML = `
-                 <tr><td colspan="5" style="text-align:center; padding:20px; color:var(--danger);">Error loading staff list</td></tr>
+                <tr><td colspan="5" style="text-align:center; padding:20px; color:var(--danger);">Error loading staff list</td></tr>
             `;
         }
     } catch(e) {
